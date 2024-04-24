@@ -1,0 +1,66 @@
+#errorMessage {
+    padding: 5px;
+    font-size: 14px;
+    background: #f5f5f5;
+    color: #d64958;
+    border: 2px solid #d64958;
+    margin: 10px 10px 10px 0px;
+}
+
+.content {
+    padding: 15px;
+}
+
+.hidden {
+    display: none;
+}
+
+.modal-body {
+    position: relative;
+    padding: 15px;
+}
+
+.modal-content {
+    max-width: 350px;
+    background-color: #fff;
+    margin: 0px auto;
+}
+
+.modal-dialog {
+    width: 700px;
+    margin: 30px auto;
+    position: relative;
+}
+
+.secondary-action-text {
+    text-align: center;
+}
+
+button {
+    color: #fff;
+    background-color: #337ab7;
+    font-size: 14px;
+    font-weight: bold;
+    margin: 20px 0px;
+    height: 40px;
+    width: 100%;
+    border-color: #2e6da4;
+}
+
+button.button-link {
+    background: none;
+    border: none;
+    padding: 0;
+    text-decoration: underline;
+    cursor: pointer;
+    color: #069;
+    margin: initial;
+    height: initial;
+    width: initial;
+}
+
+body {
+    background-color: rgb(144, 144, 144);
+    font-family: Arial;
+    color: #3B3B3B;
+}

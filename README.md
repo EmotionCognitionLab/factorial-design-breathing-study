@@ -1,0 +1,1 @@
+This study is to examine the effect of slow-paced breathing on plasma amyloid beta. The study tests whether specific home practice factors make slow-paced breathing more or less likely to decrease plasma amyloid beta.

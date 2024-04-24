@@ -1,0 +1,25 @@
+{
+    "version": "1",
+    "region": "us-west-2",
+    "userPoolId": "us-west-2_foobar",
+    "userName": "123cde456",
+    "callerContext": {
+      "awsSdkVersion": "aws-sdk-unknown-unknown",
+      "clientId": "abc123cde456"
+    },
+    "triggerSource": "PostConfirmation_ConfirmSignUp",
+    "request": {
+      "userAttributes": {
+        "sub": "123-my-sub-id",
+        "email_verified": "true",
+        "cognito:user_status": "CONFIRMED",
+        "cognito:email_alias": "pat@example.com",
+        "name": "Pat",
+        "phone_number_verified": "false",
+        "phone_number": "+11234567890",
+        "email": "pat@example.com"
+      }
+    },
+    "response": {}
+  }
+  

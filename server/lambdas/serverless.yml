@@ -1,0 +1,228 @@
+service: fds
+frameworkVersion: '3'
+configValidationMode: error
+variablesResolutionMode: 20210326
+package:
+  individually: true
+  patterns:
+    - '!./**'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-west-2'}
+  lambdaHashingVersion: 20201221
+  httpApi:
+    cors: true
+    authorizers:
+      serviceAuthorizer:
+        identitySource: $request.header.Authorization
+        issuerUrl: 'https://cognito-idp.${self:provider.region}.amazonaws.com/${ssm:/${self:service}/${self:provider.stage}/info/cognito/user-pool/id}'
+        audience:
+          - ${ssm:/${self:service}/${self:provider.stage}/info/cognito/user-pool/client/id}
+
+plugins:
+  - serverless-ssm-publish
+  - serverless-webpack
+  - serverless-better-credentials
+
+functions:
+  process-sqlite-dbs:
+    handler: process-sqlite-dbs/process-sqlite-dbs.savesessions
+    events:
+      - s3:
+          bucket: ${self:service}-${self:provider.stage}-usr-data
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .sqlite
+          existing: true
+          forceDeploy: true
+    environment:
+      S3_ENDPOINT: "https://s3.us-west-2.amazonaws.com"
+      SESSIONS_TABLE: ${ssm:/${self:service}/${self:provider.stage}/info/dynamo/table/sessions}
+    layers:
+      - !Ref BetterSqlite3LambdaLayer
+    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/sqlite/process}
+    package:
+      patterns:
+        - 'process-sqlite-dbs/package*.json'
+        - 'process-sqlite-dbs/node_modules/**'
+        - 'process-sqlite-dbs/*.js'
+
+  write-user-on-verify:
+    handler: on-user-verify/verified.handler
+    environment:
+      USERS_TABLE: ${ssm:/${self:service}/${self:provider.stage}/info/dynamo/table/users}
+      DYNAMO_ENDPOINT: "https://dynamodb.${self:provider.region}.amazonaws.com"
+    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda}
+    package:
+      patterns:
+        - 'on-user-verify/*.js'
+
+  api:
+    handler: api/api.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /self
+          authorizer: serviceAuthorizer
+      - httpApi:
+          method: PUT
+          path: /self
+          authorizer: serviceAuthorizer
+      - httpApi:
+          method: GET
+          path: /self/earnings/{earningsType+}
+          authorizer: serviceAuthorizer
+    environment:
+      USERS_TABLE: ${ssm:/${self:service}/${self:provider.stage}/info/dynamo/table/users}
+      DYNAMO_ENDPOINT: "https://dynamodb.${self:provider.region}.amazonaws.com"
+    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda}
+    package:
+      patterns:
+        - 'api/*.js'
+
+  admin-api:
+    handler: admin-api/api.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /admin/participants/all
+          authorizer: serviceAuthorizer
+      - httpApi:
+          method: GET
+          path: /admin/participants/active
+          authorizer: serviceAuthorizer
+      - httpApi:
+          method: GET
+          path: /admin/participant/{id}
+          authorizer: serviceAuthorizer
+      - httpApi:
+          method: PUT
+          path: /admin/participant/{id}
+          authorizer: serviceAuthorizer
+      - httpApi:
+            path: /admin/participant/{id}/earnings/{earningsType+}
+            method: GET
+            authorizer: serviceAuthorizer
+      - httpApi:
+          method: GET
+          path: /admin/participant/{id}/status
+          authorizer: serviceAuthorizer
+    environment:
+      DYNAMO_ENDPOINT: "https://dynamodb.${self:provider.region}.amazonaws.com"
+    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda}
+    package:
+      patterns:
+        - 'admin-api/*.js'
+
+  reminders:
+    handler: reminders/reminders.handler
+    events:
+      - schedule:
+          name: "${self:service}-${self:provider.stage}-home-training-11am-email-reminder"
+          rate: cron(0 19 * * ? *)
+          input:
+            commType: email
+            reminderType: homeTraining.morning
+      - schedule:
+          name: "${self:service}-${self:provider.stage}-home-training-8pm-sms-reminder"
+          rate: cron(0 4 * * ? *)
+          input:
+            commType: email
+            reminderType: homeTraining.evening
+    environment:
+      REGION: ${self:provider.region}
+      EMAIL_SENDER: "uscemotioncognitionlab@gmail.com"
+      SNS_ENDPOINT: "https://sns.${self:provider.region}.amazonaws.com"
+      SES_ENDPOINT: "https://email.${self:provider.region}.amazonaws.com"
+    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/dynamodb/sns/ses}
+    package:
+      patterns:
+        - 'reminders/*.js'
+
+  earnings:
+    handler: earnings/earnings.handler
+    events:
+      - schedule:
+          name: "${self:service}-${self:provider.stage}-2AM-earnings-calculation"
+          rate: cron(0 10 * * ? *)
+    timeout: 30
+    environment:
+      DYNAMO_ENDPOINT: "https://dynamodb.${self:provider.region}.amazonaws.com"
+      REGION: ${self:provider.region}
+    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/earnings}
+    package:
+      patterns:
+        - 'earnings/*.js'
+
+  register:
+    handler: register/register.signUp
+    events:
+      - httpApi:
+          path: /register
+          method: POST
+    environment:
+      DYNAMO_ENDPOINT: "https://dynamodb.${self:provider.region}.amazonaws.com"
+    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/unregistered}
+    package:
+      patterns:
+        - 'register/*.js'
+
+layers:
+  BetterSqlite3:
+    path: 'better-sqlite3-layer/layer'
+    package:
+      patterns:
+        - './**'
+    description: Provides better-sqlite3 for nodejs-based Lambda functions
+    compatibleRuntimes:
+      - nodejs20.x
+    allowedAccounts:
+      - ${aws:accountId}
+
+resources:
+  Resources:
+    PostConfirmationTriggerInvokePermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:InvokeFunction
+        Principal: cognito-idp.amazonaws.com
+        SourceArn: ${ssm:/${self:service}/${self:provider.stage}/info/cognito/user-pool/arn}
+        FunctionName: ${self:service}-${self:provider.stage}-write-user-on-verify
+  Outputs:
+    PostConfirmationLambdaArn:
+      Value: !GetAtt WriteDashuserDashonDashverifyLambdaFunction.Arn
+      Export:
+        Name: "${self:service}-${self:provider.stage}-post-confirmation-lambda-arn"
+      Description: Arn for the post-cognito-verification lambda trigger
+    BetterSqlite3LambdaLayerQualifiedArn:
+      Export:
+        Name: "${self:service}-${self:provider.stage}-BetterSqlite3"
+
+custom:
+  ssmPublish:
+    enabled: true
+    params:
+      - path: /${self:service}/${self:provider.stage}/info/lambdas/write-user-on-verify/arn
+        source: PostConfirmationLambdaArn
+        description: Arn for the post-cognito-verification lambda trigger
+  webpack:
+    excludeFiles: "**/__test__/*"
+    includeModules:
+      forceExclude:
+        - aws-sdk
+        - "@aws-sdk"
+        - "@aws-sdk/client-cognito-identity-provider"
+        - "@aws-sdk/client-dynamodb"
+        - "@aws-sdk/client-s3"
+        - "@aws-sdk/client-ses"
+        - "@aws-sdk/client-sqs"
+        - "@aws-sdk/credential-providers"
+        - "@aws-sdk/lib-dynamodb"
+        - "@aws-sdk/types"
+        - "@smithy"
+        - better-sqlite3
+
+

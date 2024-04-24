@@ -1,0 +1,133 @@
+body {
+    display: flex;
+    justify-content: safe center;
+    background-color: #f6f6ee;
+}
+
+table {
+    font-size: 20px;
+    color: #263a46;
+    background-color: #f5f5dc;
+}
+
+thead {
+    color: #ffffff;
+    background-color: #648c96;
+}
+
+tr:nth-child(even) {
+    background-color: #e8ecd4;
+}
+
+table, th, td {
+    border: 2px solid;
+    border-color: #4b6973;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 5px;
+}
+
+td label input {
+    margin-right: 10px;
+    vertical-align: bottom;
+    position: relative;
+    top: -2px;
+}
+
+progress {
+    width: 80px;
+    margin: 5px;
+}
+
+label {
+    display: inline-block;
+    overflow: hidden;
+    /*
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    */
+}
+
+.error {
+    color: red;
+}
+
+.hidden {
+    display: none;
+}
+
+.small {
+    font-size: 90%;
+}
+
+.tabs {
+    display: flex;
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+    width: 150px;
+}
+
+.tab {
+    flex: 1;
+    font-size: 140%;
+    background: #d6d6d2;
+}
+
+.tab label {
+    display: block;
+    box-sizing: border-box;
+    padding: 3px;
+    text-align: center;
+    background: #d6d6d2;
+    cursor: pointer;
+    transition: background 0.5s ease;
+}
+
+.tab label:hover {
+    background: rgb(174, 174, 171);
+}
+
+.tab [type=radio] { display: none; }
+[type=radio]:checked ~ label {
+  background: #7f7f7a;
+}
+
+.username {
+    color: blue;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.wide-label {
+    width: 230px;
+}
+
+#error {
+    color: red;
+    font-size: 125%;
+    margin: auto;
+    width: 30%;
+}
+
+#user-details {
+    position: fixed;
+    padding: 30px 50px;
+    z-index: 10;
+    border: 3px solid gray;
+    background-color: #f6f6ee;
+    width: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 20%;
+    box-shadow: 5px 5px 2px lightgray;
+}
+
+#close-button {
+    position: absolute;
+    color: black;
+    font-size: 30px;
+    top: -10px;
+    right: -10px;
+}

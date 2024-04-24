@@ -1,0 +1,37 @@
+{
+  "name": "lipbelly",
+  "version": "1.0.0",
+  "description": "Home for modules (e.g. aws-sdk) shared across multiple lambda functions",
+  "main": "index.js",
+  "scripts": {
+    "test": "TZ=Etc/UTC jest --runInBand"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.(js|jsx|mjs)$": "babel-jest"
+    }
+  },
+  "author": "Noah Mercer",
+  "license": "ISC",
+  "devDependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.238.0",
+    "@aws-sdk/client-dynamodb": "^3.49.0",
+    "@aws-sdk/client-s3": "^3.49.0",
+    "@aws-sdk/client-ses": "^3.241.0",
+    "@aws-sdk/client-sqs": "^3.241.0",
+    "@aws-sdk/client-sts": "^3.49.0",
+    "@aws-sdk/lib-dynamodb": "^3.49.0",
+    "@aws-sdk/s3-request-presigner": "^3.49.0",
+    "@babel/core": "^7.16.0",
+    "@babel/preset-env": "^7.16.0",
+    "babel-jest": "^27.3.1",
+    "imports-loader": "^3.1.1",
+    "jest": "^27.0.4",
+    "lambda-local": "^1.7.4",
+    "serverless": "^3.32.2",
+    "serverless-better-credentials": "^2.0.0",
+    "serverless-ssm-publish": "^1.4.1",
+    "serverless-webpack": "^5.5.5",
+    "webpack": "^5.73.0"
+  }
+}

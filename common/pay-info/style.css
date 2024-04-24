@@ -1,0 +1,45 @@
+.pay-info table {
+    margin-top: 50px;
+    font-size: 20px;
+    color: #263a46;
+    background-color: #f5f5dc;
+}
+
+.pay-info thead {
+    color: #ffffff;
+    background-color: #648c96;
+}
+
+.pay-info table, .pay-info th, .pay-info td {
+    border: 2px solid;
+    border-color: #4b6973;
+    border-collapse: collapse;
+}
+
+.pay-info th, .pay-info td {
+    padding: 5px;
+}
+
+.pay-info td label input {
+    margin-right: 10px;
+    vertical-align: bottom;
+    position: relative;
+    top: -2px;
+}
+
+.pay-info select {
+    display: block;
+}
+
+.pay-info tr:nth-child(3), .pay-info tr:nth-child(9) {
+    background-color: #e8ecd4;
+}
+
+.pay-info td:nth-child(1) {
+    font-weight: bold;
+}
+
+.pay-info-divider td[colspan="3"] {
+    color: #ffffff;
+    background-color: #648c96;
+}

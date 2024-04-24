@@ -1,0 +1,15 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "API client to make calls to various lambda functions",
+  "main": "client.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Noah Mercer",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/runtime": "^7.17.8",
+    "core-js": "^3.25.1"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "better-sqlite3-layer",
+  "version": "1.0.0",
+  "description": "A Lambda Layer that provides the better-sqlite3 library, which has native dependencies.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Noah Mercer",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^9.2.2"
+  }
+}

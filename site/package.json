@@ -1,0 +1,67 @@
+{
+  "scripts": {
+    "test": "jest",
+    "test-all": "cd ../common/logger && npm run test && cd ../../site && npm run test",
+    "start": "npx webpack serve --config webpack.dev.js",
+    "start-external": "npm start -- --host 0.0.0.0",
+    "build": "rm -rf dist/* && npx webpack --config webpack.prod.js",
+    "predeploy": "node scripts/pre-deploy.js $npm_config_env && node scripts/version-deploy.js && npm run test-all && npm run build",
+    "deploy": "node scripts/tag-deploy.js && node scripts/deploy.js"
+  },
+  "dependencies": {
+    "api": "file:../common/api",
+    "auth": "file:../common/auth",
+    "dayjs": "^1.11.7",
+    "db": "file:../common/db",
+    "handlebars": "^4.7.8",
+    "logger": "file:../common/logger",
+    "ua-parser-js": "^0.7.35"
+  },
+  "jest": {
+    "rootDir": ".",
+    "moduleDirectories": [
+      "<rootDir>",
+      "node_modules"
+    ],
+    "moduleNameMapper": {
+      "\\.css$": "identity-obj-proxy",
+      "\\.png": "../../client/__mocks__/fileMock.js",
+      "\\.wav": "../../client/__mocks__/fileMock.js",
+      "\\.ogg": "../../client/__mocks__/fileMock.js",
+      "\\.mp3": "../../client/__mocks__/fileMock.js"
+    },
+    "testEnvironment": "jsdom",
+    "transform": {
+      "^.+\\.(js|jsx|mjs)$": "babel-jest",
+      "\\.html$": "jest-raw-loader"
+    }
+  },
+  "devDependencies": {
+    "@babel/plugin-transform-destructuring": "^7.17.3",
+    "@babel/plugin-transform-regenerator": "^7.14.5",
+    "@babel/plugin-transform-runtime": "^7.16.5",
+    "@babel/preset-env": "^7.14.7",
+    "aws-sdk": "^2.937.0",
+    "babel-jest": "^27.0.6",
+    "css-loader": "^5.2.6",
+    "deploytools": "file:../common/deploytools",
+    "eslint": "^8.1.0",
+    "eslint-plugin-jest": "^25.2.2",
+    "handlebars-loader": "^1.7.3",
+    "html-loader": "^2.1.2",
+    "html-webpack-plugin": "^5.3.2",
+    "identity-obj-proxy": "^3.0.0",
+    "jest": "^27.0.5",
+    "jest-canvas-mock": "^2.3.1",
+    "jest-mock-fetch": "^2.0.5",
+    "jest-raw-loader": "^1.0.1",
+    "mime-types": "^2.1.31",
+    "prompt": "^1.2.0",
+    "regenerator-runtime": "^0.13.9",
+    "style-loader": "^2.0.0",
+    "webpack": "^5.40.0",
+    "webpack-cli": "^4.9.2",
+    "webpack-dev-server": "^4.7.4",
+    "webpack-merge": "^5.8.0"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "admin-api",
+  "version": "1.0.0",
+  "description": "API for admin-only calls",
+  "main": "api.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Noah Mercer",
+  "license": "ISC",
+  "dependencies": {
+    "dayjs": "^1.11.9",
+    "db": "file:../../../common/db"
+  }
+}

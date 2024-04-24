@@ -1,0 +1,59 @@
+body {
+    display: flex;
+    font-size: 22px !important;
+    background-color: beige;
+    justify-content: center;
+}
+
+form {
+    width: 300px;
+    border: 3px solid rgb(150, 138, 8);
+    padding: 20px;
+}
+
+input:not(input[type="checkbox"], input[type="radio"]) {
+    margin: 10px 0px 10px 0px;
+    width: 100%;
+}
+
+p * {
+    display: block;
+}
+
+.header {
+    width: 350px;
+}
+
+.hidden {
+    display: none;
+}
+
+.small {
+    font-size: 80%;
+}
+
+.error {
+    width: 100%;
+    padding-top: 2px;
+    font-size: 80%;
+    color: darkred;
+    background-color: lightpink;
+}
+
+#errors {
+    color: red;
+    font-size: 125%;
+    margin: auto;
+    width: 30%;
+}
+
+#content {
+    max-width: 600px;
+}
+
+#submit-button {
+    color: black;
+    font-size: 24px;
+    margin-top: 14px;
+    margin-left: 100px;
+}

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title><%= htmlWebpackPlugin.options.title %></title>
+    </head>
+    <body>
+        <div id="errors" class="hidden"></div>
+        <div id="loading">Loading...</div>
+        <div id="registration-form" class="hidden">
+            <p class="header">Thanks for participating in the breathing study! Let's get you set up with an account:</p>
+            <form novalidate>
+                <label for="name">Name:</label>
+                <input type="text" name="name" id="name" value="" /> <br/>
+                <label for="email">Email:</label>
+                <input type="email" name="email" id="email" value="" /> <br/>
+                <p>
+                    <label for="emailConfirm">Confirm email:</label>
+                        <input type="email" name="emailConfirm" id="emailConfirm" value="" />
+                        <span class="error hidden"></span>
+                    </label>
+                </p>
+                <p>
+                    <label for="phone">Phone (with area code):
+                        <input type="text" name="phone" id="phone" minlength="10" pattern="[\-0-9 \)\(]+" required placeholder="A validation code will be sent to this number" value="" />
+                        <span class="error hidden"></span>
+                    </label>
+                </p>
+                <p>
+                    <label for="password">Password:
+                        <input type="password" name="password" id="password" minlength="12" placeholder="Minimum 12 characters" required value="" />
+                        <span class="error hidden"></span>
+                    </label>
+                </p>
+                <p>
+                <p></p>
+                <span>
+                    <input type="checkbox" id="msgConsent" name="msgConsent" required />
+                    <label for="msgConsent" class="small">As part of participating in this study I agree to receive text messages to remind me of study activities.</label>
+                    <span class="error hidden"></span>
+                </span>
+                
+                <br/>
+                <button id="submit-button" type="submit">Sign up</button>
+            </form>
+        </div>
+        <div class="modal-body">
+            <div id="phoneVerificationError" class="error hidden"></div>
+
+            <div id="phoneVerification" class="hidden">
+                <p>We have sent a code to your phone.</p>
+                Please enter it here:
+                <input id="phoneVerificationCode" type="text" />
+                <button id="submitPhoneVerification">Submit</button>
+                <p></p>
+                <span class="small">Didn't receive a code? <a href="" id="resendPhoneCodeNormal">Resend it</a></span> 
+            </div>
+        </div>
+    </body>
+</html>

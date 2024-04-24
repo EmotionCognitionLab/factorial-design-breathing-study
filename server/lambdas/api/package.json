@@ -1,0 +1,14 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "API for client code to communicate with AWS",
+  "main": "api.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "Noah Mercer",
+  "license": "ISC",
+  "dependencies": {
+    "db": "file:../../../common/db"
+  }
+}

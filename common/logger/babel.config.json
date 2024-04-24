@@ -1,0 +1,21 @@
+{
+    "plugins": [
+        ["@babel/transform-runtime", {
+            "regenerator": true
+        }]
+    ],
+    "presets": ["@babel/preset-env"],
+    "env": {
+        "test": {
+            "presets": [
+                ["@babel/preset-env", { "targets": { "node": "current" } }]
+            ]
+        },
+        "development": {
+            "presets": [
+                ["@babel/preset-env", { "targets": { "node": "current" } }]
+            ]
+        }
+    },
+    "targets":  "> 0.2%, not dead, not op_mini all"
+}

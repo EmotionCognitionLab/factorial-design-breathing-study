@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title><%= htmlWebpackPlugin.options.title %></title>
+</head>
+<body>
+    <div>
+        <div id="error"></div>
+        <div class="tabs">
+            <div class="tab"><input type="radio" id="activeParticipants" name="tab-links" checked="true"><label for="activeParticipants">Active</label></div>
+            <div class="tab"><input type="radio" id="allParticipants" name="tab-links"><label for="allParticipants">All</label></input></div>
+        </div>
+        <table id="dashboard">
+            <thead>
+                <tr>
+                    <th>Participant</th>
+                    <th>Participant ID</th>
+                    <th>Stage 2 Start Date</th>
+                    <th>Stage 2 Status</th>
+                    <th>Stage 3 Status</th>
+                    <th>Dropped</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <div id="user-details" class="hidden"></div>
+    </div>
+</body>
+</html>

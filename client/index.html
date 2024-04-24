@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>RAPID Study</title>
+
+  </head>
+  <body>
+    <div id="app"></div>
+    <!--Electron has globalThis, but our old cognito lib expects global-->
+    <script>var global = global || window;</script>
+    <script type="module" src="/src/renderer.js"></script>
+  </body>
+</html>

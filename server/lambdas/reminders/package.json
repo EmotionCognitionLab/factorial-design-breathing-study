@@ -1,0 +1,30 @@
+{
+  "name": "reminders",
+  "version": "1.0.0",
+  "description": "Sends reminders to participants who are not keeping up with home-based experiment activities.",
+  "main": "reminders.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EmotionCognitionLab/pvs.git"
+  },
+  "author": "Noah Mercer",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/EmotionCognitionLab/pvs/issues"
+  },
+  "homepage": "https://github.com/EmotionCognitionLab/pvs#readme",
+  "dependencies": {
+    "dayjs": "^1.11.9",
+    "db": "file:../../../common/db",
+    "logger": "file:../../../common/logger"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-ses": "^3.391.0",
+    "@aws-sdk/client-sns": "^3.391.0",
+    "aws-sdk-client-mock": "^3.0.0"
+  }
+}

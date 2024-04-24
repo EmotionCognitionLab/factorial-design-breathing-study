@@ -1,0 +1,16 @@
+{
+  "name": "earnings",
+  "version": "1.0.0",
+  "description": "",
+  "main": "earnings.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Noah Mercer",
+  "license": "ISC",
+  "dependencies": {
+    "dayjs": "^1.11.9",
+    "db": "file:../../../common/db"
+  }
+}

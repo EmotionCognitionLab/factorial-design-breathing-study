@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Mind-Body Study Login</title>
+    </head>
+    <body>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div id="phoneVerificationSuccess" class="content hidden">
+                    <p>
+                    Your phone number has been verified. You are ready to start the experiment.
+                    </p>
+                </div>
+
+                <div id="phoneCodeSendFailed" class="content hidden">
+                    <p>
+                        There was a problem sending a verification code to your phone. Please <button id="resendPhoneCodeError" class="button-link">try again</a>.
+                    </p>
+                </div>
+
+                <div class="modal-body">
+                    <div id="errorMessage" class="content hidden">
+
+                    </div>
+
+                    <div id="phoneVerification" class="hidden">
+                        <p>We have sent a code to your phone.</p>
+                        Please enter it here:
+                        <input id="phoneVerificationCode" type="text" />
+                        <button id="submitPhoneVerification">Submit</button>
+                        <p class="secondary-action-text">
+                            <span>Didn't receive a code?</span> <button id="resendPhoneCodeNormal" class="button-link">Resend it</button>
+                        </p>
+                        <p class="secondary-action-text">
+                            <button class="button-link hidden" id="skipPhoneVerification">Continue without it</button>
+                        </p>
+                    </div>
+
+                    <div id="phoneConfirm" class="hidden">
+                        <p id="phoneConfirmMsg">Please confirm your phone number:</p>
+                        <input id="phoneConfirmField" type="tel">
+                        <button id="phoneConfirmSubmit">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

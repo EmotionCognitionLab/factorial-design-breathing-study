@@ -1,0 +1,24 @@
+{
+  "name": "db",
+  "version": "2.0.0",
+  "description": "API for LipBelly db access",
+  "main": "db.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "Noah Mercer",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.410.0",
+    "@aws-sdk/credential-providers": "^3.410.0",
+    "@aws-sdk/lib-dynamodb": "^3.410.0",
+    "logger": "file:../logger",
+    "util": "^0.12.4"
+  },
+  "devDependencies": {
+    "@babel/plugin-transform-regenerator": "^7.16.5",
+    "@babel/plugin-transform-runtime": "^7.16.5",
+    "@babel/preset-env": "^7.16.5"
+  }
+}

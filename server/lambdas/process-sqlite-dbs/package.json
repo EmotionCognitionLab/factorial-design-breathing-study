@@ -1,0 +1,15 @@
+{
+  "name": "process-sqlite-dbs",
+  "version": "1.0.0",
+  "description": "Function to extract data from participant sqlite files and add (some of) it to DynamoDb.",
+  "main": "process-sqlite-dbs.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Noah Mercer",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^9.4.0",
+    "db": "file:../../../common/db"
+  }
+}
