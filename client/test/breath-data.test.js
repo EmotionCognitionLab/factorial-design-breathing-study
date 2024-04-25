@@ -1,5 +1,6 @@
 import { std, sqrt } from 'mathjs';
 import { earningsTypes } from '../../common/types/types.js';
+import { emoPics } from '../src/utils.js';
 import * as bd from "../src/breath-data";
 
 jest.mock('fs/promises', () => ({
@@ -13,7 +14,7 @@ jest.mock('electron', () => {
 import { mkdir } from 'fs/promises';
 
 let db;
-const tableNames = ['segments', 'rest_segments', 'regimes']; // order is important to avoid foreign key constraint errors on delete
+const tableNames = ['segments', 'rest_segments', 'regimes', 'emo_pics_views']; // order is important to avoid foreign key constraint errors on delete
 
 function cleanDb() {
     tableNames.forEach(t => db.exec(`DELETE from ${t}`));
@@ -59,9 +60,28 @@ describe("Breathing data functions", () => {
         });
     });
 
-    it("should use an in-memory database in test", () => {
+    it.only("should use an in-memory database in test", () => {
         const path = bd.breathDbPath();
         expect(path).toBe(":memory:");
+    });
+
+    it.only("getNextEmoPic should return the emotional picture with the fewest views", () => {
+        for (let i=1; i<emoPics.length; i++) {
+            bd.saveEmoPicView(emoPics[i]);
+        }
+        const nextPic = bd.getNextEmoPic();
+        expect(nextPic).toBe(emoPics[0]);
+    });
+
+    it.only("getNextEmoPic should handle the case where multiple pictures have the fewest views", () => {
+        const startIdx = 3;
+        expect(startIdx).toBeLessThan(emoPics.length);
+        for (let i=startIdx; i<emoPics.length; i++) {
+            bd.saveEmoPicView(emoPics[i]);
+        }
+        const nextPic = bd.getNextEmoPic();
+        const expectedPossiblePics = emoPics.slice(0, startIdx);
+        expect(expectedPossiblePics).toContain(nextPic);
     });
 
     it("should set the bonus_date to 1970-01-01 for the lumosity and breath bonuses", () => {
@@ -138,7 +158,7 @@ describe("Breathing data functions", () => {
         expect(avgRestCoherence).toBeCloseTo(expectedMean);
     });
 
-    it.only("should return the ids of all regimes EXCEPT for non-random 15bpm (which is only in stage 1) when getAllRegimeIds is called", () => {
+    it("should return the ids of all regimes EXCEPT for non-random 15bpm (which is only in stage 1) when getAllRegimeIds is called", () => {
         const insertRegimeStmt = db.prepare('INSERT INTO regimes(duration_ms, breaths_per_minute, hold_pos, randomize) VALUES(?, ?, ?, ?)');
         const regimes = [
             {durationMs: 300000, breathsPerMinute: 4, holdPos: null, randomize: 0},

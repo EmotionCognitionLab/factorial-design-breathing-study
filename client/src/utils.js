@@ -55,3 +55,6 @@ export function conditionToFactors(condition) {
         rewards: rewards
     }
 }
+
+export const emoPics = ['1', '2', '3', '4', '5', '6', '7', '8']
+export const emoPicExt = '.jpeg'

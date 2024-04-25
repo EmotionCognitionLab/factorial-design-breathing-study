@@ -10,6 +10,7 @@ import { SessionStore } from './session-store.js'
 import version from '../version.json'
 import { yyyymmddNumber } from './utils.js';
 import { earningsTypes } from '../../common/types/types.js';
+import { emoPics } from './utils.js';
 import * as path from 'path'
 
 let db;
@@ -270,6 +271,31 @@ function getKeyValue(key) {
     return res.value;
 }
 
+function saveEmoPicView(emoPicName) {
+    const insertEmoPicViewStmt = db.prepare('INSERT INTO emo_pics_views(pic_name, date_time) VALUES(?, ?)');
+    const dateTime = Math.round((new Date).getTime() / 1000);
+    const insertRes = insertEmoPicViewStmt.run(emoPicName, dateTime);
+    return insertRes.lastInsertRowid;
+}
+
+/**
+ * Finds all of the positive emotional pictures that 
+ * have received the fewest views so far and returns
+ * one of them at random. 
+ */
+function getNextEmoPic() {
+    const emoPicViewCounts = {};
+    emoPics.forEach(p => emoPicViewCounts[p] = 0);
+    const getEmoPicViewCountsStmt = db.prepare('SELECT pic_name, count(pic_name) as view_count FROM emo_pics_views GROUP BY pic_name');
+    const curCounts = getEmoPicViewCountsStmt.all();
+    curCounts.forEach(({pic_name, view_count}) => emoPicViewCounts[pic_name] = view_count);
+    const minCount = Math.min(...Object.values(emoPicViewCounts));
+    const possiblePics = Object.entries(emoPicViewCounts)
+        .filter(([_, viewCount]) => viewCount == minCount)
+        .map(([pic, _]) => pic)
+    return possiblePics[Math.floor(Math.random() * possiblePics.length)];
+}
+
 // import this module into itself so that we can mock
 // certain calls in test
 // https://stackoverflow.com/questions/51269431/jest-mock-inner-function
@@ -328,6 +354,9 @@ async function initBreathDb(serializedSession) {
         insertKeyValueStmt = db.prepare('REPLACE INTO key_value_store(name, value) VALUES(?, ?)');
         getKeyValueStmt = db.prepare('SELECT value FROM key_value_store where name = ?');
 
+        const createEmoPicsTableStmt = db.prepare('CREATE TABLE IF NOT EXISTS emo_pics_views(id INTEGER PRIMARY KEY, pic_name TEXT NOT NULL, emwave_session_id, date_time INTEGER NOT NULL)');
+        createEmoPicsTableStmt.run();
+
         emwave.subscribe(createSegment);
 
         return db;
@@ -365,6 +394,8 @@ export {
     getTrainingDayCount,
     saveRegimesForDay,
     getKeyValue,
-    setKeyValue
+    setKeyValue,
+    getNextEmoPic,
+    saveEmoPicView
 }
 export const forTesting = { initBreathDb, downloadDatabase, createSegment }
