@@ -13,6 +13,11 @@ provider:
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-west-2'}
   lambdaHashingVersion: 20201221
+  ecr:
+    images:
+      rhrvimage:
+        path: ./rhrv
+        platform: linux/arm64
   httpApi:
     cors: true
     authorizers:
@@ -28,6 +33,20 @@ plugins:
   - serverless-better-credentials
 
 functions:
+  find-hrv-peaks:
+    architecture: arm64
+    runtime: provided.al2023
+    image:
+      name: rhrvimage
+      command:
+        - functions.HRV_main
+      entryPoint:
+        - "/var/runtime/bootstrap"
+    events:
+      - httpApi:
+          path: /rhrv
+          method: post
+    timeout: 30
   process-sqlite-dbs:
     handler: process-sqlite-dbs/process-sqlite-dbs.savesessions
     events:
