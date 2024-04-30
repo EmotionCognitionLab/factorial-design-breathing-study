@@ -16,6 +16,7 @@ import * as path from 'path'
 let db;
 let insertSegmentStmt, insertRestSegmentStmt, findRegimeStmt, insertRegimeStmt, regimeByIdStmt;
 let insertKeyValueStmt, getKeyValueStmt;
+let insertEmWaveSessionStmt;
 
 function breathDbPath() {
    return path.join(breathDbDir(), 'fd-breath-study.sqlite');
@@ -296,6 +297,16 @@ function getNextEmoPic() {
     return possiblePics[Math.floor(Math.random() * possiblePics.length)];
 }
 
+function saveEmWaveSessionData(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage) {
+    insertEmWaveSessionStmt.run(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage);
+}
+
+function getEmWaveSessionsForStage(stage) {
+    const stmt = db.prepare('SELECT em_wave_session_id from emwave_sessions where stage = ?');
+    const res = stmt.all();
+    return res.map(rowToObject);
+}
+
 // import this module into itself so that we can mock
 // certain calls in test
 // https://stackoverflow.com/questions/51269431/jest-mock-inner-function
@@ -357,8 +368,11 @@ async function initBreathDb(serializedSession) {
         const createEmoPicsTableStmt = db.prepare('CREATE TABLE IF NOT EXISTS emo_pics_views(id INTEGER PRIMARY KEY, pic_name TEXT NOT NULL, emwave_session_id, date_time INTEGER NOT NULL)');
         createEmoPicsTableStmt.run();
 
-        emwave.subscribe(createSegment);
+        const createSessionTableStmt = db.prepare('CREATE TABLE IF NOT EXISTS emwave_sessions(emwave_session_id TEXT PRIMARY KEY, avg_coherence FLOAT NOT NULL, pulse_start_time INTEGER NOT NULL, valid_status INTEGER NOT NULL, duration_seconds INTEGER NOT NULL, stage INTEGER NOT NULL)');
+        createSessionTableStmt.run();
+        insertEmWaveSessionStmt = db.prepare('INSERT INTO emwave_sessions(emwave_session_id, avg_coherence, pulse_start_time, valid_status, duration_seconds, stage) VALUES (?, ?, ?, ?, ?, ?)');
 
+        emwave.subscribe(createSegment);
         return db;
     } catch (err) {
         console.log('Error initializing breath database', err);
@@ -369,7 +383,6 @@ async function initBreathDb(serializedSession) {
 ipcMain.handle('login-succeeded', async (_event, session) => {
     if (!db) await initBreathDb(session);
 });
-
 
 function closeBreathDb() {
     if (db) db.close();
@@ -396,6 +409,8 @@ export {
     getKeyValue,
     setKeyValue,
     getNextEmoPic,
-    saveEmoPicView
+    saveEmoPicView,
+    saveEmWaveSessionData,
+    getEmWaveSessionsForStage
 }
 export const forTesting = { initBreathDb, downloadDatabase, createSegment }

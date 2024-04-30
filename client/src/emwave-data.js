@@ -40,44 +40,43 @@ function deleteShortSessions() {
 }
 
 /**
- * Returns the emWave SessionUuid, LiveIBI and EntrainmentParameter values for all sessions
+ * Returns the emWave SessionUuid and (optionally) LiveIBI values for all sessions
  * since sinceDateTime. Excludes deleted and invalid sessions.
- * TODO: Break the data into five minute segements.
- * @param {Number} sinceDateTime date/time (in ms since the epoch) value for the earliest session to extract
+ * @param {Number} sinceDateTime date/time (in sec since the epoch) value for the earliest session to extract or -1 to get only most recent session.
  */
- function extractSessionData(sinceDateTime) {
+ function extractSessionData(sinceDateTime, includeLiveIBI=false) {
     const db = new Database(emWaveDbPath(), {fileMustExist: true })
     const results = [];
+    let columnsToFetch = 'SessionUuid as sessionUuid, PulseStartTime as pulseStartTime, AvgCoherence as avgCoherence, ValidStatus as validStatus, PulseEndTime-PulseStartTime as durationSec';
+    if (includeLiveIBI) columnsToFetch += ', LiveIBI'
     try {
-        const stmt = db.prepare(`select SessionUuid, LiveIBI, EntrainmentParameter from Session s where s.IBIStartTime >= ? and s.ValidStatus = 1 and s.DeleteFlag is null`);
-        const sessions = stmt.all(sinceDateTime);
+        const stmt = sinceDateTime == -1 ?
+            db.prepare(`select ${columnsToFetch} from Session s where s.DeleteFlag is null order by s.IBIStartTime desc limit 1`) :
+            db.prepare(`select ${columnsToFetch} from Session s where s.IBIStartTime >= ? and s.DeleteFlag is null`);
+
+        let sessions;
+        if (sinceDateTime == -1) {
+            sessions = stmt.all();
+        } else {
+            sessions = stmt.all(sinceDateTime);
+        }
+
         for (let s of sessions) {
-            const r = {sessionId: s.SessionUuid};
-
-            const coherence = [];
-            for (let i = 0; i<s.EntrainmentParameter.length; i+=4) {
-                const b = new ArrayBuffer(4);
-                const bytes = new Uint8Array(b);
-                for (let j = 0; j<4; j++) {
-                    bytes[j] = s.EntrainmentParameter[i+j];
+            if (includeLiveIBI) {
+                const liveIBI = [];
+                for (let i = 0; i<s.LiveIBI.length; i+=2) {
+                    const b = new ArrayBuffer(2);
+                    const bytes = new Uint8Array(b);
+                    bytes[0] = s.LiveIBI[i];
+                    bytes[1] = s.LiveIBI[i+1];
+                    const intView = new Int16Array(b);
+                    liveIBI.push(intView[0]);
                 }
-                const floatView = new Float32Array(b);
-                coherence.push(Math.log(1 + floatView[0])); // coherence is ln(1 + entrainment param)
+                s['liveIBI'] = liveIBI;
+                delete s.LiveIBI; 
             }
-            r['coherence'] = coherence;
 
-            const liveIBI = [];
-            for (let i = 0; i<s.LiveIBI.length; i+=2) {
-                const b = new ArrayBuffer(2);
-                const bytes = new Uint8Array(b);
-                bytes[0] = s.LiveIBI[i];
-                bytes[1] = s.LiveIBI[i+1];
-                const intView = new Int16Array(b);
-                liveIBI.push(intView[0]);
-            }
-            r['liveIBI'] = liveIBI;
-
-            results.push(r);
+            results.push(s);
         }
     } finally {
         db.close();

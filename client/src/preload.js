@@ -1,6 +1,6 @@
 import { ipcRenderer, contextBridge } from 'electron'
 contextBridge.exposeInMainWorld('mainAPI', {
-    loginSucceeded: (session) => ipcRenderer.invoke('login-succeeded', session),
+    loginSucceeded: async (session) => await ipcRenderer.invoke('login-succeeded', session),
     onGetCurrentUser: (callback) => ipcRenderer.on('get-current-user', callback),
     onGoTo: (callback) => ipcRenderer.on('go-to', (_event, routePath) => callback(routePath)), 
     getRestBreathingDays: async (stage) => await ipcRenderer.invoke('get-rest-breathing-days', stage),
@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld('mainAPI', {
     stopPulseSensor: () => ipcRenderer.send('pulse-stop'),
     handleEmWaveIBIEvent: (callback) => ipcRenderer.on('emwave-ibi', callback),
     handleEmWaveStatusEvent: (callback) => ipcRenderer.on('emwave-status', callback),
+    extractEmWaveSessionData: async (sinceDateTime, includeLiveIBI) => await ipcRenderer.invoke('emwave-extract-sessions', sinceDateTime, includeLiveIBI),
+    saveEmWaveSessionData: (emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage) => ipcRenderer.invoke('save-emwave-session', emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage),
     getKeyValue: async (key) => await ipcRenderer.invoke('get-key-value', key),
     setKeyValue: (key, value) => ipcRenderer.send('set-key-value', key, value),
     disableMenus: async () => ipcRenderer.invoke('disable-menus'),

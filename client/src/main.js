@@ -6,8 +6,8 @@ import awsSettings from '../../common/aws-settings.json';
 import { ipcMain } from 'electron';
 import { Logger } from 'logger'
 import emwave from './emwave';
-import { emWaveDbPath, deleteShortSessions as deleteShortEmwaveSessions } from './emwave-data';
-import { breathDbPath, closeBreathDb, getKeyValue, setKeyValue, getRestBreathingDays, getPacedBreathingDays, getSegmentsAfterDate, isStageComplete } from './breath-data';
+import { emWaveDbPath, deleteShortSessions as deleteShortEmwaveSessions, extractSessionData } from './emwave-data';
+import { breathDbPath, closeBreathDb, getKeyValue, setKeyValue, getRestBreathingDays, getPacedBreathingDays, getSegmentsAfterDate, isStageComplete, saveEmWaveSessionData } from './breath-data';
 import { getRegimesForSession } from './regimes';
 import version from "../version.json";
 import { SessionStore } from './session-store'
@@ -250,6 +250,14 @@ ipcMain.on('show-login-window', async () => {
   } 
 });
 
+ipcMain.handle('emwave-extract-sessions', (event, sinceDateTime, includeLiveIBI) => {
+  const res = extractSessionData(sinceDateTime, includeLiveIBI);
+  return res;
+});
+
+ipcMain.handle('save-emwave-session', (event, emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage) => {
+  saveEmWaveSessionData(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage);
+});
 
 ipcMain.handle('upload-emwave-data', async (event, session) => {
   // give emWave a couple of seconds to save any lingering data before quitting
