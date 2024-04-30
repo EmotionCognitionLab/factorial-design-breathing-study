@@ -51,7 +51,7 @@ const routes = [
     { path: '/setup', component: SetupComponent, props: {loggedIn: false} },
     { path: '/upload', component: UploadComponent },
     { path: '/signin', component: LoginComponent, name: 'signin', props: true },
-    { path: '/login', component: OauthRedirectComponent }, // to match the oauth redirect we get
+    { path: '/login', beforeEnter: handleOauthRedirect, component: OauthRedirectComponent }, // TODO eliminate now-obsolete OauthRedirectComponent; the beforeEnter guard is now doing all the work
     { path: '/earnings', beforeEnter: earningsOrSetup, component: EarningsComponent },
     { path: '/stage/:stageNum', component: StageComponent, props: true },
     { path: '/donetoday', component: DoneTodayComponent},
@@ -61,13 +61,20 @@ const routes = [
 ]
 
 const noAuthRoutes = ['/signin', '/login', '/']
+const dbRequiredRoutes = ['/earnings', '/current-stage']
 
 const router = createRouter({
     history: process.env.IS_ELECTRON ? createWebHashHistory() : createWebHistory(),
     routes: routes
 })
 
+let isDbInitialized = false
+
 async function earningsOrSetup() {
+    if (!isDbInitialized) {
+        console.error(`Database is not initialized; unable to tell if participant requires setup.`)
+        return false // TODO should we just send them through signup again?
+    }
     if (await window.mainAPI.getKeyValue('setupComplete') !== 'true') {
         return { path: '/setup' }
     }
@@ -83,6 +90,38 @@ async function chooseStage() {
     return {path: '/alldone'}
 }
 
+async function handleLoginSuccess(session) {
+    SessionStore.session = session
+    await window.mainAPI.loginSucceeded(session)
+    isDbInitialized = true
+}
+
+async function handleOauthRedirect() {
+    const curUrl = window.location.href;
+    if (curUrl.indexOf('?') > -1) {
+        // we're handling a redirect from the oauth server
+        // take the code and state from query string and let cognito parse them
+        const p = new Promise((res, rej) => {
+            const cognitoAuth = getAuth()
+            cognitoAuth.userhandler = {
+                onSuccess: session => res(session),
+                onFailure: err => {
+                    console.error(err)
+                    rej(err)
+                }
+            }
+
+            cognitoAuth.parseCognitoWebResponse(curUrl.slice(curUrl.indexOf('?')))
+        })
+        
+        const session = await p
+        await handleLoginSuccess(session)
+    }
+    const dest = window.sessionStorage.getItem('FDS.postLoginPath') ? window.sessionStorage.getItem('FDS.postLoginPath') : '/'
+    window.sessionStorage.removeItem('FDS.postLoginPath')
+    router.push({path: dest})
+}
+
 // use navigation guards to handle authentication
 router.beforeEach(async (to) => {
     // index.html means we're running as a packaged app and win.loadFile has been called
@@ -92,19 +131,27 @@ router.beforeEach(async (to) => {
         return { name: 'signin', query: { 'postLoginPath': to.path } }
     }
 
+    if (!dbRequiredRoutes.includes(to.path)) return true
+
+    // make sure we have a session and use it to announce login success
+    // and initialize db
     const sess = await SessionStore.getRendererSession()
     if (isAuthenticated() && !sess) {
-        const cognitoAuth = getAuth()
-        cognitoAuth.userhandler = {
-            onSuccess: session => {
-                window.mainAPI.loginSucceeded(session)
-                SessionStore.session = session
-            },
-            onFailure: err => console.error(err)
-        }
-        cognitoAuth.getSession()
-    }
+        const p = new Promise((res, rej) => {
+            const cognitoAuth = getAuth()
+            cognitoAuth.userhandler = {
+                onSuccess: session => res(session),
+                onFailure: err => {
+                    console.error(err)
+                    rej(err)
+                }
+            }
+            cognitoAuth.getSession()
+        })
 
+        const session = await p
+        await handleLoginSuccess(session)
+    }
     return true
 })
 
