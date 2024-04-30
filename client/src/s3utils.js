@@ -153,18 +153,23 @@ export default {
             if (resp.$metadata.httpStatusCode !== 200) {
                 return {status: 'Error', msg: `Download attempt failed with http status code ${resp.$metadata.httpStatusCode}.`};
             }
+            const writeStream = createWriteStream(localFileDest);
             resp.Body.on('error', (err) => {
                 console.error(`Error trying to download ${bucket}://${key}`, err);
                 writeStream.close();
                 throw err;
             });
-            const writeStream = createWriteStream(localFileDest);
-            resp.Body.pipe(writeStream);
-            return await new Promise(resolve => {
-                writeStream.on('end', () => {
+            const writeComplete = new Promise((resolve, reject) => {
+                writeStream.on('finish', () => {
                     resolve({ status: 'Complete', msg: 'Download successful'});
                 });
+                writeStream.on('error', err => {
+                    console.error('Error writing breath-data db file during s3 download', err)
+                    reject(err);
+                })
             });
+            resp.Body.pipe(writeStream);
+            return writeComplete;
         } catch (err) {
             if (err.name === 'AccessDenied' && Object.prototype.hasOwnProperty.call(err, '$metadata') && err.$metadata.httpStatusCode && err.$metadata.httpStatusCode === 403) {
                 // Since we don't grant ListBucket perms we get a 403 instead of a 404 

@@ -62,8 +62,8 @@ resource "aws_iam_policy" "s3-read-experiment-data" {
         "s3:GetObject"
       ],
       "Resource": [
-        "arn:aws:s3:::${var.data-bucket}/$${cognito-identity.amazonaws.com:sub}",
-        "arn:aws:s3:::${var.data-bucket}/$${cognito-identity.amazonaws.com:sub}/*"
+        "arn:aws:s3:::${var.data-bucket}/*/$${cognito-identity.amazonaws.com:sub}",
+        "arn:aws:s3:::${var.data-bucket}/*/$${cognito-identity.amazonaws.com:sub}/*"
       ]
     }
   ]
