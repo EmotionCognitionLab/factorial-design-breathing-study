@@ -118,7 +118,6 @@ class BallAnimation {
         }
 
         if(this.elapsedTime>=durationMs) {
-            console.debug('Inhalation sound volume', this.audioSrcInhale.volume)
             if (breathType === 'inhale' && this.audioSrcExhale) {
                 this.audioSrcExhale.play();
             } else if (breathType === 'exhale' && this.audioSrcInhale) {
