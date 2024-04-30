@@ -49,7 +49,7 @@ resource "aws_cognito_user_pool" "pool" {
       sns_caller_arn = aws_iam_role.cognito-sns.arn
     }
     lifecycle {
-      ignore_changes = [ password_policy, schema ]
+      ignore_changes = [ password_policy, schema, lambda_config ]
     }
 }
 output "cognito_pool_id" {
