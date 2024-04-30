@@ -1,38 +1,49 @@
 <template>
     <div class="wrapper">
-        <div class="instruction" v-if="step==1">
-            Welcome! We're going to do some breathing exercises to familiarize you with the heart rate sensor and software. Please sit comfortably and connect the pulse sensor to your ear.
-            <br/>
-            <button @click="nextStep">Continue</button>
+        <div class="error" v-if="errorText != null">
+            {{ errorText }}
+            <div v-if="errorRequiresQuit">
+                <button class="button" @click="quit">Quit</button>
+            </div>
+            <div v-else>
+                <button class="button" @click="errorText = null">OK</button>
+            </div>
         </div>
-        <div v-else-if="step==2">
-            <RestComponent @timerFinished="nextStep" />
-        </div>
-        <div v-else-if="step==3">
-            <p>Next you're going to breathe at a specific pace. Breathe in when the ball is going up and out when it is going down.</p>
-            <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 13.333, randomize: false}]" :factors=factors @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
-        </div>
-        <div v-else-if="step==4">
-            <p>Good work! This will also be paced breathing, but at a different pace.</p>
-            <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 12, randomize: false}]" :factors=factors @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
-        </div>
-        <div v-else-if="step==5">
-            <p>
-                Nice! One more to go and we'll be all done with setup.
-            </p>
-            <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 8.571, randomize: false}]" :factors=factors @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
-        </div>
-        <div v-else-if="step==6">
-            <UploadComponent>
-                <template #preUploadText>
-                    <div class="instruction">Terrific! Thank you for completing this orientation. Please wait while we upload your data...</div>
-                </template>
-                <template #postUploadText>
-                     <div class="instruction">Upload complete! At home please log in to the app to start your home training.</div>
-                    <br/>
-                    <button class="button" @click="quit">Quit</button>
-                </template>
-            </UploadComponent>
+        <div v-else>
+            <div class="instruction" v-if="step==1">
+                Welcome! We're going to do some breathing exercises to familiarize you with the heart rate sensor and software. Please sit comfortably and connect the pulse sensor to your ear.
+                <br/>
+                <button @click="nextStep">Continue</button>
+            </div>
+            <div v-else-if="step==2">
+                <RestComponent @timerFinished="nextStep" />
+            </div>
+            <div v-else-if="step==3">
+                <p>Next you're going to breathe at a specific pace. Breathe in when the ball is going up and out when it is going down.</p>
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 13.333, randomize: false}]" :factors=factors @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+            </div>
+            <div v-else-if="step==4">
+                <p>Good work! This will also be paced breathing, but at a different pace.</p>
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 12, randomize: false}]" :factors=factors @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+            </div>
+            <div v-else-if="step==5">
+                <p>
+                    Nice! One more to go and we'll be all done with setup.
+                </p>
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 8.571, randomize: false}]" :factors=factors @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+            </div>
+            <div v-else-if="step==6 && errorText == null">
+                <UploadComponent>
+                    <template #preUploadText>
+                        <div class="instruction">Terrific! Thank you for completing this orientation. Please wait while we upload your data...</div>
+                    </template>
+                    <template #postUploadText>
+                        <div class="instruction">Upload complete! At home please log in to the app to start your home training.</div>
+                        <br/>
+                        <button class="button" @click="quit">Quit</button>
+                    </template>
+                </UploadComponent>
+            </div>
         </div>
     </div>
 </template>
@@ -42,7 +53,9 @@
     import RestComponent from './RestComponent.vue'
     import TrainingComponent from './TrainingComponent.vue'
     import UploadComponent from './UploadComponent.vue'
-    import { getConditionFactors } from '../utils'
+    import { getConditionFactors, slowBreathsPerMinute, slowerBreathsPerMinute } from '../utils'
+    import { SessionStore } from '../session-store'
+    import ApiClient from '../../../common/api/client';
 
     // step 1: instructions
     // step 2: rest breathing
@@ -51,12 +64,20 @@
     // step 5: paced breathing @ 7s/breath
     // step 6: upload
     const step = ref(null)
+    const errorText = ref(null)
+    const errorRequiresQuit = ref(false)
     let pacerHasFinished = false
     const factors = ref(null)
+    let session;
+    let apiClient;
+    const ibiData = [];
+    const stage = 1;
     
     onBeforeMount(async() => {
-        factors.value = await getConditionFactors()
-        window.mainAPI.setStage(1)
+        session = await SessionStore.getRendererSession()
+        apiClient = new ApiClient(session)
+        factors.value = await getConditionFactors(apiClient)
+        window.mainAPI.setStage(stage)
         const curStep = await window.mainAPI.getKeyValue('stage1Step')
         if (!curStep) {
             step.value = 1
@@ -65,7 +86,22 @@
         }
     })
 
+    async function saveEmWaveSessionData() {
+        const s = (await window.mainAPI.extractEmWaveSessionData(-1, true))[0]
+        if (s.validStatus != 1) return false
+
+        ibiData.push(s.liveIBI)
+        await window.mainAPI.saveEmWaveSessionData(s.sessionUuid, s.avgCoherence, s.pulseStartTime, s.validStatus, s.durationSec, stage)
+        return true
+    }
+
     async function nextStep() {
+        const sessionGood = await saveEmWaveSessionData();
+        if (!sessionGood) {
+            errorText.value = "Unfortunately the data for that session were invalid. Please repeat it."
+            return
+        }
+        
         step.value += 1
         await window.mainAPI.setKeyValue('stage1Step', step.value)
         if (step.value > 3 && step.value < 6) {
@@ -73,8 +109,35 @@
             pacerHasFinished = false
         }
         if (step.value == 6) {
+            if (factors.paceSelection === 'standard') {
+                await setStandardPaces()
+            } else {
+                await setPersonalizedPaces()
+            }
             await window.mainAPI.setKeyValue('setupComplete', 'true')
         }
+    }
+
+    async function setStandardPaces() {
+        if (props.factors.breathingFrequency === 'slower') {
+            await apiClient.updateSelf({'pace': slowerBreathsPerMinute})
+        } else {
+            await apiClient.updateSelf({'pace': slowBreathsPerMinute})
+        }
+    }
+
+    async function setPersonalizedPaces() {
+        if (ibiData.length !== 4) {
+            const verb = ibiData.length == 1 ? 'was' : 'were'
+            errorText.value = `An error has occurred. Please ask the experimenter for assistance.
+            Experimenter: Four sessions with IBI data were expected, but ${ibiData.length} ${verb} found. Please 
+            quit the app, delete the fd-breath-study.sqlite file, and restart the app.
+            `
+            errorRequiresQuit.value = true
+            return
+        }
+        const hrv = await apiClient.getHRVAnalysis(ibiData[0])
+        // TODO get analysis from all four sessions and calculate personalized pace
     }
 
     async function pacerFinished() {

@@ -6,17 +6,13 @@ export function yyyymmddString(date) {
     return `${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2,0)}${date.getDate().toString().padStart(2, 0)}`;
 }
 
-import { SessionStore } from './session-store'
-import ApiClient from '../../common/api/client';
-export async function getCondition() {
-    const session = await SessionStore.getRendererSession()
-    const apiClient = new ApiClient(session)
+export async function getCondition(apiClient) {
     const data = await apiClient.getSelf()
     return data.condition
 }
 
-export async function getConditionFactors() {
-    const condition = await getCondition()
+export async function getConditionFactors(apiClient) {
+    const condition = await getCondition(apiClient)
     return conditionToFactors(condition)
 }
 
@@ -58,3 +54,6 @@ export function conditionToFactors(condition) {
 
 export const emoPics = ['1', '2', '3', '4', '5', '6', '7', '8']
 export const emoPicExt = '.jpeg'
+
+export const slowBreathsPerMinute = 5.4
+export const slowerBreathsPerMinute = 4.02
