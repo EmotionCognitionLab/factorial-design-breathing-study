@@ -101,6 +101,19 @@ export default class ApiClient {
         return await this.doFetch(url, "post", "An error occurred during registration", params);
     }
 
+    /**
+     * Given an array of inter-beat intervals (IBI), in ms, returns peak values in two
+     * different frequency ranges, "slow" and "slower", from a spectral frequency analysis.
+     * The return value is an array containing a single object with the fields "slowX",
+     * "slowY", "slowerX", and "slowerY".
+     * @param {Number[]} ibiData 
+     * @returns {Object[]}
+     */
+    async getHRVAnalysis(ibiData) {
+        const url = awsSettings.HrvApiUrl;
+        return await this.doFetch(url, "post", "An error occurred doing the HRV analysis", ibiData)
+    }
+
     async doFetch(url, method, errPreamble, body = null) {
         const init = {
             method: method,
