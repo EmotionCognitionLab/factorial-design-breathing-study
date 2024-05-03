@@ -9,6 +9,7 @@ module.exports = merge(common, {
         port: 9000,
     },
     mode: "development",
+    devtool: "source-map",
     output: {
         filename: '[name].bundle.js',
         path: path.join(__dirname, "dist"),

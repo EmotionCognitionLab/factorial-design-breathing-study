@@ -1,8 +1,8 @@
 {
   "name": "logger",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "Overrides console.log|error and writes to cloudwatch logs",
-  "main": "index.js",
+  "main": "dist/logger.bundle.js",
   "scripts": {
     "test": "jest",
     "build": "webpack"

@@ -1,5 +1,5 @@
-import { mockClient } from 'aws-sdk-client-mock'
-import { Logger } from "../";
+import { mockClient } from 'aws-sdk-client-mock';
+import { Logger } from "../index.js";
 import { CloudWatchLogsClient, CreateLogStreamCommand, PutLogEventsCommand, DescribeLogStreamsCommand } from '@aws-sdk/client-cloudwatch-logs';
 import awsSettings from '../../aws-settings.json';
 
