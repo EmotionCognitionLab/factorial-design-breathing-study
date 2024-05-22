@@ -41,7 +41,7 @@ function deleteShortSessions() {
 
 /**
  * Returns the emWave SessionUuid and (optionally) LiveIBI values for all sessions
- * since sinceDateTime. Excludes deleted and invalid sessions.
+ * since sinceDateTime. Excludes deleted sessions.
  * @param {Number} sinceDateTime date/time (in sec since the epoch) value for the earliest session to extract or -1 to get only most recent session.
  */
  function extractSessionData(sinceDateTime, includeLiveIBI=false) {
