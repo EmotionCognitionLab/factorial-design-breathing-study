@@ -20,17 +20,17 @@
             </div>
             <div v-else-if="step==3">
                 <p>Next you're going to breathe at a specific pace. Breathe in when the ball is going up and out when it is going down.</p>
-                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 13.333, randomize: false}]" :factors=factors @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 13.333, randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
             </div>
             <div v-else-if="step==4">
                 <p>Good work! This will also be paced breathing, but at a different pace.</p>
-                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 12, randomize: false}]" :factors=factors @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 12, randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
             </div>
             <div v-else-if="step==5">
                 <p>
                     Nice! One more to go and we'll be all done with setup.
                 </p>
-                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 8.571, randomize: false}]" :factors=factors @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 8.571, randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
             </div>
             <div v-else-if="step==6 && errorText == null">
                 <UploadComponent>
@@ -67,7 +67,7 @@
     const errorText = ref(null)
     const errorRequiresQuit = ref(false)
     let pacerHasFinished = false
-    const factors = ref(null)
+    let factors
     let session;
     let apiClient;
     const ibiData = [];
@@ -76,7 +76,7 @@
     onBeforeMount(async() => {
         session = await SessionStore.getRendererSession()
         apiClient = new ApiClient(session)
-        factors.value = await getConditionFactors(apiClient)
+        factors = await getConditionFactors(apiClient)
         window.mainAPI.setStage(stage)
         const curStep = await window.mainAPI.getKeyValue('stage1Step')
         if (!curStep) {
@@ -96,6 +96,12 @@
     }
 
     async function nextStep() {
+        if (step.value == 1) {
+            // They've just read an instruction screen - no need to save emwave data
+            step.value += 1
+            return
+        }
+
         const sessionGood = await saveEmWaveSessionData();
         if (!sessionGood) {
             errorText.value = "Unfortunately the data for that session were invalid. Please repeat it."
@@ -119,7 +125,7 @@
     }
 
     async function setStandardPaces() {
-        if (props.factors.breathingFrequency === 'slower') {
+        if (factors.breathingFrequency === 'slower') {
             await apiClient.updateSelf({'pace': slowerBreathsPerMinute})
         } else {
             await apiClient.updateSelf({'pace': slowBreathsPerMinute})
@@ -136,8 +142,9 @@
             errorRequiresQuit.value = true
             return
         }
-        const hrv = await apiClient.getHRVAnalysis(ibiData[0])
-        // TODO get analysis from all four sessions and calculate personalized pace
+        const hrvResultPromises = ibiData.map(ibis => apiClient.getHRVAnalysis(ibis))
+        const hrvResults = await Promise.all(hrvResultPromises)
+        // TODO calculate personalized pace using the hrvResults
     }
 
     async function pacerFinished() {
