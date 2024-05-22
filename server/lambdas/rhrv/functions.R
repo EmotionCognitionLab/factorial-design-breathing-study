@@ -42,7 +42,7 @@ HRV_main <- function(ibi_data) {
     slowerY <- 'n/a'
     slowerX <- 'n/a'
   }else{
-    slowerX <- subset1[which(subset1[,2] == slowerY),1]
+    slowerX <- round(subset1[which(subset1[,2] == slowerY),1], 3)
   }
   #make a subset2 of x and y where x is between 0.075 and 0.093
   subset2 <- subset(peakXY, peakXY$x >= 0.075 & peakXY$x <= 0.093)
@@ -54,7 +54,7 @@ HRV_main <- function(ibi_data) {
     slowY <- 'n/a'
     slowX <- 'n/a'
   }else{
-    slowX <- subset2[which(subset2[,2] == slowY),1]
+    slowX <- round(subset2[which(subset2[,2] == slowY),1], 3)
   }
   #make a data frame with column:slowerX,slowerY,slowX,slowY
   peak_info <- data.frame(slowerX,slowerY,slowX,slowY)
