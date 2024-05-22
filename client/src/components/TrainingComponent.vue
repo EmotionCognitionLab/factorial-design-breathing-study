@@ -7,7 +7,7 @@
             <div id="pacer-animation">
                 <VerticalPacerComponent 
                     :regimes="remainingRegimes"
-                    :playAudio="true"
+                    :playAudio=factors.playAudioPacer
                     @pacerFinished="pacerFinished"
                     @pacerRegimeChanged="updateRegimeStatus"
                     ref="pacer" />
