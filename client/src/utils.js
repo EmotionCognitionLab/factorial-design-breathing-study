@@ -57,3 +57,75 @@ export const emoPicExt = '.jpeg'
 
 export const slowBreathsPerMinute = 5.4
 export const slowerBreathsPerMinute = 4.02
+
+/**
+ * Calculates a personalized breathing pace for a participant.
+ * First checks to see if a given frequency showed peak power more than others. If so, 
+ * use it. If not, return the frequency with the highest Y value. If all four peak values are 'n/a'
+ * then return the standard slow (or slower) breathing pace instead of a personalized one.
+ * @param {string} slowOrSlower 'slow' or 'slower' - the range we should be targeting
+ * @param {[object]} peakFreqs the frequencies that showed peak power during setup breathing exercises. Must be an array with four entries. Each entry should be an object with 'slowX', 'slowY', 'slowerX', and 'slowerY' keys. All values should be floats or 'n/a'.
+ * @returns {number} breathing frequency in breaths per minute 
+*/
+export function calculatePersonalizedPace(slowOrSlower, peakFreqs) {
+    if (slowOrSlower !== 'slow' && slowOrSlower !== 'slower') {
+        throw new Error(`Expected 'slow' or 'slower' but received ${slowOrSlower}.`);
+    }
+
+    if (peakFreqs.length != 4) {
+        throw new Error(`Expected four frequencies but received ${peakFreqs.length}`);
+    }
+
+    const validFreqs = peakFreqs.map(p => {
+        if (slowOrSlower === 'slower') return {x: p.slowerX, y: p.slowerY};
+        return {x: p.slowX, y: p.slowY}
+    }).filter(p => p.x !== 'n/a');
+    
+    if (validFreqs.length == 0) {
+        if (slowOrSlower === 'slow') return slowBreathsPerMinute;
+        return slowerBreathsPerMinute;
+    }
+
+    if (validFreqs.length == 1) {
+        return hzToBreathsPerMinute(validFreqs[0].preakFreq);
+    }
+
+    // check for a frequency that appears most often
+    const freqCounts = {}
+    validFreqs.forEach(({x, _y}) => {
+        const count = freqCounts[x] || 0;
+        freqCounts[x] = count + 1;
+    });
+    let maxCount = 1;
+    let modalFreq = null;
+    Object.entries(freqCounts).forEach(([freq, count]) => {
+        if (count > maxCount) {
+            maxCount = count;
+            modalFreq = freq;
+        }
+    });
+    if (maxCount > 1) {
+        return hzToBreathsPerMinute(modalFreq);
+    }
+
+    // no frequency appeared more than once; just return the 
+    // one with the highest Y value
+    let maxY = -Infinity
+    let targetX = null
+    validFreqs.forEach(({x, y}) => {
+        if (y > maxY) {
+            maxY = y;
+            targetX = x;
+        }
+    });
+    if (!targetX) throw new Error(`No peak with a highest Y value found.`);
+    return hzToBreathsPerMinute(targetX);
+
+
+}
+
+// convert Hz to breaths per minute and round to 1 decimal place
+// exported for testing
+export function hzToBreathsPerMinute(hz) {
+    return Math.round(((hz * 60) * 10) * (1 + Number.EPSILON)) / 10;
+}

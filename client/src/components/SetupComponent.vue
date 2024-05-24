@@ -20,19 +20,22 @@
             </div>
             <div v-else-if="step==3">
                 <p>Next you're going to breathe at a specific pace. Breathe in when the ball is going up and out when it is going down.</p>
-                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 13.333, randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-1], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
             </div>
             <div v-else-if="step==4">
                 <p>Good work! This will also be paced breathing, but at a different pace.</p>
-                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 12, randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-1], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
             </div>
             <div v-else-if="step==5">
                 <p>
                     Nice! One more to go and we'll be all done with setup.
                 </p>
-                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: 8.571, randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-1], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
             </div>
-            <div v-else-if="step==6 && errorText == null">
+            <div v-else-if="step==6">
+                <p>One moment while we crunch the data...</p>
+            </div>
+            <div v-else-if="step==7 && errorText == null">
                 <UploadComponent>
                     <template #preUploadText>
                         <div class="instruction">Terrific! Thank you for completing this orientation. Please wait while we upload your data...</div>
@@ -53,7 +56,7 @@
     import RestComponent from './RestComponent.vue'
     import TrainingComponent from './TrainingComponent.vue'
     import UploadComponent from './UploadComponent.vue'
-    import { getConditionFactors, slowBreathsPerMinute, slowerBreathsPerMinute } from '../utils'
+    import { calculatePersonalizedPace, getConditionFactors, slowBreathsPerMinute, slowerBreathsPerMinute } from '../utils'
     import { SessionStore } from '../session-store'
     import ApiClient from '../../../common/api/client';
 
@@ -64,6 +67,7 @@
     // step 5: paced breathing @ 7s/breath
     // step 6: upload
     const step = ref(null)
+    const paces = ref(['rest', 13.333, 12, 8.571])
     const errorText = ref(null)
     const errorRequiresQuit = ref(false)
     let pacerHasFinished = false
@@ -82,15 +86,16 @@
         if (!curStep) {
             step.value = 1
         } else {
+            // TODO we have to get the ibiData of the steps we've already done
             step.value = Number.parseInt(curStep)
         }
     })
 
-    async function saveEmWaveSessionData() {
+    async function saveEmWaveSessionData(pace) {
         const s = (await window.mainAPI.extractEmWaveSessionData(-1, true))[0]
         if (s.validStatus != 1) return false
 
-        ibiData.push(s.liveIBI)
+        ibiData.push({pace: pace, ibi: s.liveIBI})
         await window.mainAPI.saveEmWaveSessionData(s.sessionUuid, s.avgCoherence, s.pulseStartTime, s.validStatus, s.durationSec, stage)
         return true
     }
@@ -102,7 +107,7 @@
             return
         }
 
-        const sessionGood = await saveEmWaveSessionData();
+        const sessionGood = await saveEmWaveSessionData(paces.value[step-1]);
         if (!sessionGood) {
             errorText.value = "Unfortunately the data for that session were invalid. Please repeat it."
             return
@@ -115,36 +120,60 @@
             pacerHasFinished = false
         }
         if (step.value == 6) {
-            if (factors.paceSelection === 'standard') {
-                await setStandardPaces()
-            } else {
-                await setPersonalizedPaces()
-            }
+            await setPace()
             await window.mainAPI.setKeyValue('setupComplete', 'true')
+            step.value += 1 // send them straight to upload; no need for them to click a button
+            await window.mainAPI.setKeyValue('stage1Step', step.value)
         }
     }
 
-    async function setStandardPaces() {
-        if (factors.breathingFrequency === 'slower') {
-            await apiClient.updateSelf({'pace': slowerBreathsPerMinute})
-        } else {
-            await apiClient.updateSelf({'pace': slowBreathsPerMinute})
-        }
-    }
+    async function setPace() {
+        const paceData = {}
+        const hrvResults = []
+        let personalPace
 
-    async function setPersonalizedPaces() {
-        if (ibiData.length !== 4) {
-            const verb = ibiData.length == 1 ? 'was' : 'were'
+        try {
+
+            if (factors.paceSelection === 'standard') {
+                if (factors.breathingFrequency === 'slower') {
+                    personalPace = slowerBreathsPerMinute
+                } else {
+                    personalPace = slowBreathsPerMinute
+                }
+            } else {
+                // they're in the personalized pace condition
+
+                // ensure we have data to calculate personalized pace
+                if (ibiData.length !== 4) {
+                    const verb = ibiData.length == 1 ? 'was' : 'were'
+                    errorText.value = `An error has occurred. Please ask the experimenter for assistance.
+                    Experimenter: Four sessions with IBI data were expected, but ${ibiData.length} ${verb} found. Please 
+                    quit the app, delete the fd-breath-study.sqlite file, and restart the app.
+                    `
+                    errorRequiresQuit.value = true
+                    return
+                }
+                // find hrv peaks and calculate personalized pace
+                for (const ibd of ibiData) {
+                    const hrvPeaks = (await apiClient.getHRVAnalysis(ibd.ibi))[0] // for some reason hrv analysis results are wrapped in an array
+                    hrvResults.push({pace: ibd.pace, peaks: hrvPeaks})
+                }
+                personalPace = calculatePersonalizedPace(factors.breathingFrequency, hrvResults.map(hrv => hrv.peaks))
+            }
+
+            paceData['pace'] = personalPace
+            if (hrvResults.length > 0) {
+                paceData['stage1HrvPeaks'] = hrvResults
+            }
+            await apiClient.updateSelf(paceData)
+
+        } catch (err) {
             errorText.value = `An error has occurred. Please ask the experimenter for assistance.
-            Experimenter: Four sessions with IBI data were expected, but ${ibiData.length} ${verb} found. Please 
-            quit the app, delete the fd-breath-study.sqlite file, and restart the app.
+            Experimenter: ${err.message}
             `
             errorRequiresQuit.value = true
             return
         }
-        const hrvResultPromises = ibiData.map(ibis => apiClient.getHRVAnalysis(ibis))
-        const hrvResults = await Promise.all(hrvResultPromises)
-        // TODO calculate personalized pace using the hrvResults
     }
 
     async function pacerFinished() {
