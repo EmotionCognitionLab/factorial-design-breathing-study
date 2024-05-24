@@ -58,8 +58,9 @@ const updateSelf = async(userId, updates) => {
             const propVal = `:${prop}`
             expressionAttrNames[propName] = prop;
             expressionAttrVals[propVal] = updates[prop];
-            updateExpression += ` ${propName} = ${propVal}`
+            updateExpression += ` ${propName} = ${propVal},`
         }
+        updateExpression = updateExpression.slice(0, updateExpression.length - 1); // trim trailing comma
         const params = {
             TableName: usersTable,
             Key: { userId: userId },
