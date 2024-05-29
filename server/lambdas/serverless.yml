@@ -33,6 +33,14 @@ plugins:
   - serverless-better-credentials
 
 functions:
+  create-rc-participant:
+    handler: redcap/redcap.createParticipant
+    events:
+      - httpApi:
+          method: POST
+          path: /rc
+    environment:
+      TOKEN: ${ssm:/${self:service}/${self:provider.stage}/info/redcap/token}
   find-hrv-peaks:
     architecture: arm64
     runtime: provided.al2023

@@ -1,0 +1,39 @@
+<html>
+    <head>
+        <title>REDCap test</title>
+        <style>
+            input {
+                margin-bottom: 30px;
+            }
+        </style>
+    </head>
+    <body>
+       <form method="POST" action="https://41gkrhj8kh.execute-api.us-west-2.amazonaws.com/rc">
+            <label for="firstName">First Name</label>
+            <input type="text" id="firstName" name="firstName"/>
+            <br/>
+            <label for="lastName">Last Name:</label>
+            <input type="text" id="lastName" name="lastName"/>
+            <br/>
+            <label for="email">Email:</label>
+            <input type="text" id="email" name="email"/>
+            <br/>
+            <label for="phone">Phone:</label>
+            <input type="text" id="phone" name="phone"/>
+            <br/>
+            <label for="visit1">Visit 1 Date</label>
+            <input type="date" id="visit1" name="visit1"/>
+            <br/>
+            <label for="visit2">Visit 2 Date</label>
+            <input type="date" id="visit2" name="visit2"/>
+            <br/>
+            <label for="visitStart">Visit Start Time</label>
+            <input type="time" id="visitStart" name="visitStart"/>
+            <br/>
+            <label for="visitEnd">Visit End Time</label>
+            <input type="time" id="visitEnd" name="visitEnd"/>
+            <br/>
+            <button type="submit">Submit</button>
+        </form>
+    </body>
+</html>
