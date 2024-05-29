@@ -20,17 +20,17 @@
             </div>
             <div v-else-if="step==3">
                 <p>Next you're going to breathe at a specific pace. Breathe in when the ball is going up and out when it is going down.</p>
-                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-1], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-2], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
             </div>
             <div v-else-if="step==4">
                 <p>Good work! This will also be paced breathing, but at a different pace.</p>
-                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-1], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-2], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
             </div>
             <div v-else-if="step==5">
                 <p>
                     Nice! One more to go and we'll be all done with setup.
                 </p>
-                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-1], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-2], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
             </div>
             <div v-else-if="step==6">
                 <p>One moment while we crunch the data...</p>
@@ -107,7 +107,7 @@
             return
         }
 
-        const sessionGood = await saveEmWaveSessionData(paces.value[step-1]);
+        const sessionGood = await saveEmWaveSessionData(paces.value[step.value - 2]);
         if (!sessionGood) {
             errorText.value = "Unfortunately the data for that session were invalid. Please repeat it."
             return
