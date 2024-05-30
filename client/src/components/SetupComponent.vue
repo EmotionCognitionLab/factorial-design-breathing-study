@@ -74,7 +74,6 @@
     let factors
     let session;
     let apiClient;
-    const ibiData = [];
     const stage = 1;
     
     onBeforeMount(async() => {
@@ -86,45 +85,66 @@
         if (!curStep) {
             step.value = 1
         } else {
-            // TODO we have to get the ibiData of the steps we've already done
             step.value = Number.parseInt(curStep)
+            if (step.value == 6) {
+                // something must have gone wrong during HRV analysis
+                // call finalizeSetup to trigger it again and move forward
+                await finalizeSetup()
+            }
         }
     })
 
-    async function saveEmWaveSessionData(pace) {
-        const s = (await window.mainAPI.extractEmWaveSessionData(-1, true))[0]
+    async function saveEmWaveSessionData() {
+        const s = (await window.mainAPI.extractEmWaveSessionData(-1, false))[0]
         if (s.validStatus != 1) return false
 
-        ibiData.push({pace: pace, ibi: s.liveIBI})
         await window.mainAPI.saveEmWaveSessionData(s.sessionUuid, s.avgCoherence, s.pulseStartTime, s.validStatus, s.durationSec, stage)
         return true
     }
 
     async function nextStep() {
-        if (step.value == 1) {
-            // They've just read an instruction screen - no need to save emwave data
-            step.value += 1
-            return
-        }
+        try {
+            if (step.value == 1) {
+                // They've just read an instruction screen - no need to save emwave data
+                step.value += 1
+                return
+            }
 
-        const sessionGood = await saveEmWaveSessionData(paces.value[step.value - 2]);
-        if (!sessionGood) {
-            errorText.value = "Unfortunately the data for that session were invalid. Please repeat it."
-            return
+            // give emWave a second to save the session so we don't get the wrong one
+            const delayedSaveSession = new Promise((resolve, _) => {
+                setTimeout(async () => {
+                    const sessionValid = await saveEmWaveSessionData(paces.value[step.value - 2])
+                    resolve(sessionValid)
+                }, 1000)
+            })
+            const sessionGood = await delayedSaveSession
+            if (!sessionGood) {
+                errorText.value = "Unfortunately the data for that session were invalid. Please repeat it."
+                return
+            }
+            
+            step.value += 1
+            await window.mainAPI.setKeyValue('stage1Step', step.value)
+            if (step.value > 3 && step.value < 6) {
+                // reset the pacer
+                pacerHasFinished = false
+            }
+            if (step.value == 6) {
+                await finalizeSetup()
+            }
+        } catch (err) {
+            console.error(err)
         }
         
-        step.value += 1
+    }
+
+    async function finalizeSetup() {
+        const paceSet = await setPace()
+        if (!paceSet) return
+
+        await window.mainAPI.setKeyValue('setupComplete', 'true')
+        step.value += 1 // send them straight to upload; no need for them to click a button
         await window.mainAPI.setKeyValue('stage1Step', step.value)
-        if (step.value > 3 && step.value < 6) {
-            // reset the pacer
-            pacerHasFinished = false
-        }
-        if (step.value == 6) {
-            await setPace()
-            await window.mainAPI.setKeyValue('setupComplete', 'true')
-            step.value += 1 // send them straight to upload; no need for them to click a button
-            await window.mainAPI.setKeyValue('stage1Step', step.value)
-        }
     }
 
     async function setPace() {
@@ -144,6 +164,10 @@
                 // they're in the personalized pace condition
 
                 // ensure we have data to calculate personalized pace
+                const stage1Sessions = await window.mainAPI.getEmWaveSessionsForStage(stage)
+                const sessIds = stage1Sessions.map(s => s.emWaveSessionId)
+                const sessData = await window.mainAPI.getEmWaveSessionData(sessIds)
+                const ibiData = sessData.map(s => s.liveIBI)
                 if (ibiData.length !== 4) {
                     const verb = ibiData.length == 1 ? 'was' : 'were'
                     errorText.value = `An error has occurred. Please ask the experimenter for assistance.
@@ -154,9 +178,11 @@
                     return
                 }
                 // find hrv peaks and calculate personalized pace
-                for (const ibd of ibiData) {
-                    const hrvPeaks = (await apiClient.getHRVAnalysis(ibd.ibi))[0] // for some reason hrv analysis results are wrapped in an array
-                    hrvResults.push({pace: ibd.pace, peaks: hrvPeaks})
+                for (let i=0; i<4; i++) {
+                    const ibd = ibiData[i]
+                    const pace = paces.value[i]
+                    const hrvPeaks = (await apiClient.getHRVAnalysis(ibd))[0] // for some reason hrv analysis results are wrapped in an array
+                    hrvResults.push({pace: pace, peaks: hrvPeaks})
                 }
                 personalPace = calculatePersonalizedPace(factors.breathingFrequency, hrvResults.map(hrv => hrv.peaks))
             }
@@ -166,13 +192,13 @@
                 paceData['stage1HrvPeaks'] = hrvResults
             }
             await apiClient.updateSelf(paceData)
-
+            return true
         } catch (err) {
             errorText.value = `An error has occurred. Please ask the experimenter for assistance.
             Experimenter: ${err.message}
             `
             errorRequiresQuit.value = true
-            return
+            return false
         }
     }
 
