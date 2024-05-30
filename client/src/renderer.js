@@ -41,6 +41,7 @@ import EarningsComponent from './components/EarningsComponent.vue'
 import DoneTodayComponent from './components/DoneTodayComponent.vue'
 import OauthRedirectComponent from './components/OauthRedirectComponent.vue'
 import ConnectingComponent from './components/ConnectingComponent.vue'
+import ConditionComponent from './components/ConditionComponent.vue'
 
 
 import { isAuthenticated, getAuth } from '../../common/auth/auth'
@@ -58,10 +59,11 @@ const routes = [
     { path: '/alldone', component: StudyCompleteComponent},
     { path: '/current-stage', beforeEnter: chooseStage, component: StageComponent},
     { path: '/', name: 'landing-page', component: ConnectingComponent},
+    { path: '/condition', component: ConditionComponent}
 ]
 
 const noAuthRoutes = ['/signin', '/login', '/']
-const dbRequiredRoutes = ['/earnings', '/current-stage']
+const dbRequiredRoutes = ['/earnings', '/current-stage', '/condition']
 
 const router = createRouter({
     history: process.env.IS_ELECTRON ? createWebHashHistory() : createWebHistory(),

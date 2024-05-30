@@ -58,6 +58,7 @@ const createWindow = async () => {
 
 const EARNINGS_MENU_ID = 'earnings'
 const TRAINING_MENU_ID = 'training'
+const SETTINGS_MENU_ID = 'settings'
 
 function buildMenuTemplate(window) {
   const isMac = process.platform === 'darwin'
@@ -69,6 +70,7 @@ function buildMenuTemplate(window) {
       submenu: [
         { role: 'about' },
         { type: 'separator' },
+        { label: 'Settings', id: SETTINGS_MENU_ID, click: () => window.webContents.send('go-to', '/condition')},
         { role: 'services' },
         { type: 'separator' },
         { role: 'hide' },
@@ -102,7 +104,7 @@ function buildMenuTemplate(window) {
               { role: 'stopSpeaking' }
             ]
           }
-        ] : [ ])
+        ] : [ { label: 'Preferences', id: SETTINGS_MENU_ID, click: () => window.webContents.send('go-to', '/condition')} ])
       ]
     },
     // { role: 'viewMenu' }
