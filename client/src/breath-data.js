@@ -8,9 +8,8 @@ import Database from 'better-sqlite3';
 import s3utils from './s3utils.js'
 import { SessionStore } from './session-store.js'
 import version from '../version.json'
-import { yyyymmddNumber } from './utils.js';
+import { emoPics, yyyymmddNumber } from './utils.js';
 import { earningsTypes } from '../../common/types/types.js';
-import { emoPics } from './utils.js';
 import * as path from 'path'
 
 let db;
@@ -272,13 +271,6 @@ function getKeyValue(key) {
     return res.value;
 }
 
-function saveEmoPicView(emoPicName) {
-    const insertEmoPicViewStmt = db.prepare('INSERT INTO emo_pics_views(pic_name, date_time) VALUES(?, ?)');
-    const dateTime = Math.round((new Date).getTime() / 1000);
-    const insertRes = insertEmoPicViewStmt.run(emoPicName, dateTime);
-    return insertRes.lastInsertRowid;
-}
-
 /**
  * Finds all of the positive emotional pictures that 
  * have received the fewest views so far and returns
@@ -287,9 +279,9 @@ function saveEmoPicView(emoPicName) {
 function getNextEmoPic() {
     const emoPicViewCounts = {};
     emoPics.forEach(p => emoPicViewCounts[p] = 0);
-    const getEmoPicViewCountsStmt = db.prepare('SELECT pic_name, count(pic_name) as view_count FROM emo_pics_views GROUP BY pic_name');
+    const getEmoPicViewCountsStmt = db.prepare('SELECT emo_pic_name, count(emo_pic_name) as view_count FROM emwave_sessions WHERE emo_pic_name is not null GROUP BY emo_pic_name');
     const curCounts = getEmoPicViewCountsStmt.all();
-    curCounts.forEach(({pic_name, view_count}) => emoPicViewCounts[pic_name] = view_count);
+    curCounts.forEach(({emo_pic_name, view_count}) => emoPicViewCounts[emo_pic_name] = view_count);
     const minCount = Math.min(...Object.values(emoPicViewCounts));
     const possiblePics = Object.entries(emoPicViewCounts)
         .filter(([_, viewCount]) => viewCount == minCount)
@@ -297,14 +289,25 @@ function getNextEmoPic() {
     return possiblePics[Math.floor(Math.random() * possiblePics.length)];
 }
 
-function saveEmWaveSessionData(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage) {
-    insertEmWaveSessionStmt.run(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage);
+function saveEmWaveSessionData(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage, emoPicName=null) {
+    if (emoPicName) {
+        insertEmWaveSessionStmt.run(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage, emoPicName);
+    } else {
+        // used for non-emopic conditition participants and for setup sessions
+        const insertStmt = db.prepare('INSERT INTO emwave_sessions(emwave_session_id, avg_coherence, pulse_start_time, valid_status, duration_seconds, stage) VALUES (?, ?, ?, ?, ?, ?)');
+        insertStmt.run(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage);
+    }
 }
 
 function getEmWaveSessionsForStage(stage) {
-    const stmt = db.prepare('SELECT em_wave_session_id from emwave_sessions where stage = ?');
-    const res = stmt.all();
-    return res.map(rowToObject);
+    const stmt = db.prepare('SELECT emwave_session_id from emwave_sessions where stage = ?');
+    const res = stmt.all(stage);
+    const resObjs = res.map(rowToObject).map(s => {
+        s['emWaveSessionId'] = s['emwaveSessionId']
+        delete s['emwaveSessionId']
+        return s
+    })
+    return resObjs;
 }
 
 // import this module into itself so that we can mock
@@ -365,12 +368,9 @@ async function initBreathDb(serializedSession) {
         insertKeyValueStmt = db.prepare('REPLACE INTO key_value_store(name, value) VALUES(?, ?)');
         getKeyValueStmt = db.prepare('SELECT value FROM key_value_store where name = ?');
 
-        const createEmoPicsTableStmt = db.prepare('CREATE TABLE IF NOT EXISTS emo_pics_views(id INTEGER PRIMARY KEY, pic_name TEXT NOT NULL, emwave_session_id, date_time INTEGER NOT NULL)');
-        createEmoPicsTableStmt.run();
-
-        const createSessionTableStmt = db.prepare('CREATE TABLE IF NOT EXISTS emwave_sessions(emwave_session_id TEXT PRIMARY KEY, avg_coherence FLOAT NOT NULL, pulse_start_time INTEGER NOT NULL, valid_status INTEGER NOT NULL, duration_seconds INTEGER NOT NULL, stage INTEGER NOT NULL)');
+        const createSessionTableStmt = db.prepare('CREATE TABLE IF NOT EXISTS emwave_sessions(emwave_session_id TEXT PRIMARY KEY, avg_coherence FLOAT NOT NULL, pulse_start_time INTEGER NOT NULL, valid_status INTEGER NOT NULL, duration_seconds INTEGER NOT NULL, stage INTEGER NOT NULL, emo_pic_name TEXT)');
         createSessionTableStmt.run();
-        insertEmWaveSessionStmt = db.prepare('INSERT INTO emwave_sessions(emwave_session_id, avg_coherence, pulse_start_time, valid_status, duration_seconds, stage) VALUES (?, ?, ?, ?, ?, ?)');
+        insertEmWaveSessionStmt = db.prepare('INSERT INTO emwave_sessions(emwave_session_id, avg_coherence, pulse_start_time, valid_status, duration_seconds, stage, emo_pic_name) VALUES (?, ?, ?, ?, ?, ?, ?)');
 
         emwave.subscribe(createSegment);
         return db;
@@ -409,7 +409,6 @@ export {
     getKeyValue,
     setKeyValue,
     getNextEmoPic,
-    saveEmoPicView,
     saveEmWaveSessionData,
     getEmWaveSessionsForStage
 }
