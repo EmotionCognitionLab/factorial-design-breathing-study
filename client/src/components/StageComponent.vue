@@ -71,13 +71,11 @@ const props = defineProps(['stageNum'])
 let stage
 const doneForToday = ref(false)
 const sessionDone = ref(false)
-const condition = ref(null)
 const hasSeenInstructions = ref(false)
 const startDay = yyyymmddString(new Date())
 let dateCheckInterval
 const reloadNeeded = ref(false)
 const step = ref(1)
-const regimes = ref([])
 const factors = ref(null)
 let emoPicNum
 const emoPic = ref(null)
