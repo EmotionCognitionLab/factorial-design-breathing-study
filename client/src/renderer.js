@@ -57,7 +57,6 @@ const routes = [
     { path: '/stage/:stageNum', component: StageComponent, props: true },
     { path: '/donetoday', component: DoneTodayComponent},
     { path: '/alldone', component: StudyCompleteComponent},
-    { path: '/current-stage', beforeEnter: chooseStage, component: StageComponent},
     { path: '/', name: 'landing-page', component: ConnectingComponent},
     { path: '/condition', component: ConditionComponent}
 ]
@@ -82,14 +81,6 @@ async function earningsOrSetup() {
     }
 
     return true
-}
-
-async function chooseStage() {
-    const stage2Complete = await window.mainAPI.isStageComplete(2)
-    if (!stage2Complete) return {path: '/stage/2'}
-    const stage3Complete = await window.mainAPI.isStageComplete(3)
-    if (!stage3Complete) return {path: '/stage/3'}
-    return {path: '/alldone'}
 }
 
 async function handleLoginSuccess(session) {

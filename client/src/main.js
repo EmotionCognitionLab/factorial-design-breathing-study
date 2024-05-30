@@ -7,8 +7,7 @@ import { ipcMain } from 'electron';
 import { Logger } from 'logger'
 import emwave from './emwave';
 import { emWaveDbPath, deleteShortSessions as deleteShortEmwaveSessions, extractSessionData, getDataForSessions } from './emwave-data';
-import { breathDbPath, closeBreathDb, getKeyValue, setKeyValue, getRestBreathingDays, getPacedBreathingDays, getSegmentsAfterDate, isStageComplete, saveEmWaveSessionData, getEmWaveSessionsForStage, getNextEmoPic, getEmWaveSessionMinutesForDayAndStage } from './breath-data';
-import { getRegimesForSession } from './regimes';
+import { breathDbPath, closeBreathDb, getKeyValue, setKeyValue, saveEmWaveSessionData, getEmWaveSessionsForStage, getNextEmoPic, getEmWaveSessionMinutesForDayAndStage } from './breath-data';
 import version from "../version.json";
 import { SessionStore } from './session-store'
 import s3utils from './s3utils'
@@ -306,22 +305,6 @@ ipcMain.handle('upload-breath-data', async (event, session) => {
   return null;
 });
 
-ipcMain.handle('regimes-for-session', (_event, subjCondition, stage) => {
-  return getRegimesForSession(subjCondition, stage);
-});
-
-ipcMain.handle('get-rest-breathing-days', (_event, stage) => {
-  return getRestBreathingDays(stage);
-});
-
-ipcMain.handle('get-paced-breathing-days', (_event, stage) => {
-  return getPacedBreathingDays(stage);
-});
-
-ipcMain.handle('get-segments-after-date', (_event, date, stage) => {
-  return getSegmentsAfterDate(date, stage);
-});
-
 ipcMain.handle('get-key-value', (event, key) => {
   return getKeyValue(key)
 })
@@ -332,14 +315,6 @@ ipcMain.on('set-key-value', (event, key, value) => {
 
 ipcMain.handle('set-stage', async(_event, stage) => {
   emwave.setStage(stage);
-});
-
-ipcMain.handle('is-stage-complete', async(_event, stage) => {
-  return isStageComplete(stage);
-});
-
-ipcMain.handle('paced-breathing-days', (_event, stage) => {
-  return getPacedBreathingDays(stage);
 });
 
 ipcMain.handle('quit', () => {

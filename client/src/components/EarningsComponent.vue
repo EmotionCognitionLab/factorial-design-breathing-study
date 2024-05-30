@@ -28,7 +28,7 @@ onBeforeMount(async () => {
 })
 
 function goToTasks() {
-    router.push({path: "/current-stage"})
+    router.push({path: "/stage/2"})
 }
 
 </script>
