@@ -7,7 +7,7 @@ import { ipcMain } from 'electron';
 import { Logger } from 'logger'
 import emwave from './emwave';
 import { emWaveDbPath, deleteShortSessions as deleteShortEmwaveSessions, extractSessionData, getDataForSessions } from './emwave-data';
-import { breathDbPath, closeBreathDb, getKeyValue, setKeyValue, getRestBreathingDays, getPacedBreathingDays, getSegmentsAfterDate, isStageComplete, saveEmWaveSessionData, getEmWaveSessionsForStage } from './breath-data';
+import { breathDbPath, closeBreathDb, getKeyValue, setKeyValue, getRestBreathingDays, getPacedBreathingDays, getSegmentsAfterDate, isStageComplete, saveEmWaveSessionData, getEmWaveSessionsForStage, getNextEmoPic, getEmWaveSessionMinutesForDayAndStage } from './breath-data';
 import { getRegimesForSession } from './regimes';
 import version from "../version.json";
 import { SessionStore } from './session-store'
@@ -255,8 +255,8 @@ ipcMain.handle('emwave-extract-sessions', (event, sinceDateTime, includeLiveIBI)
   return res;
 });
 
-ipcMain.handle('save-emwave-session', (event, emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage) => {
-  saveEmWaveSessionData(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage);
+ipcMain.handle('save-emwave-session', (event, emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage, emoPic) => {
+  saveEmWaveSessionData(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage, emoPic);
 });
 
 ipcMain.handle('get-emwave-sessions-for-stage', (event, stage) => {
@@ -265,6 +265,14 @@ ipcMain.handle('get-emwave-sessions-for-stage', (event, stage) => {
 
 ipcMain.handle('get-emwave-session-data', (event, sessionIds) => {
   return getDataForSessions(sessionIds);
+});
+
+ipcMain.handle('get-emwave-session-minutes-for-day-and-stage', (event, date, stage) => {
+  return getEmWaveSessionMinutesForDayAndStage(date, stage);
+})
+
+ipcMain.handle('get-next-emo-pic', (event) => {
+  return getNextEmoPic();
 });
 
 ipcMain.handle('upload-emwave-data', async (event, session) => {

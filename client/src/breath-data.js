@@ -303,11 +303,21 @@ function getEmWaveSessionsForStage(stage) {
     const stmt = db.prepare('SELECT emwave_session_id from emwave_sessions where stage = ?');
     const res = stmt.all(stage);
     const resObjs = res.map(rowToObject).map(s => {
-        s['emWaveSessionId'] = s['emwaveSessionId']
-        delete s['emwaveSessionId']
-        return s
+        s['emWaveSessionId'] = s['emwaveSessionId'];
+        delete s['emwaveSessionId'];
+        return s;
     })
     return resObjs;
+}
+
+function getEmWaveSessionMinutesForDayAndStage(date, stage) {
+    date.setHours(0); date.setMinutes(0); date.setSeconds(0); date.setMilliseconds(0);
+    const startPulseTime = Math.round(date.getTime() / 1000);
+    date.setHours(23); date.setMinutes(59); date.setSeconds(59); date.setMilliseconds(999);
+    const endPulseTime = Math.round(date.getTime() / 1000);
+    const stmt = db.prepare('SELECT sum(duration_seconds) as total_seconds FROM emwave_sessions where stage = ? and pulse_start_time >= ? and pulse_start_time <= ?');
+    const result = stmt.all()[0].total_seconds;
+    return Math.round(result / 60);
 }
 
 // import this module into itself so that we can mock
@@ -410,6 +420,7 @@ export {
     setKeyValue,
     getNextEmoPic,
     saveEmWaveSessionData,
-    getEmWaveSessionsForStage
+    getEmWaveSessionsForStage,
+    getEmWaveSessionMinutesForDayAndStage
 }
 export const forTesting = { initBreathDb, downloadDatabase, createSegment }
