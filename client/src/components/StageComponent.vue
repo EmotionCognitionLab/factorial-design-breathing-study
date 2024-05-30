@@ -1,41 +1,24 @@
 <template>
     <div>
         <div class="instruction" :class="{hidden: reloadNeeded || hasSeenInstructions}">
-            <div v-if="condition === 'A'">
-                <p>
-                    In this study we are testing how breathing to boost your relaxation for 30 min/day affects people's emotion regulation.
-                </p>
-                <p>
-                    You will use a paced breathing sequence to maintain a relaxed state, during two 15-minute training sessions each day. In the first few days, we will be testing which breathing sequences work best for you.
-                </p>
-                <p>
-                    Throughout your practice session, we will show you your "coherence” score. This score indicates a pattern of heart rate associated with relaxation. You should aim to keep the score high.
-                </p>
-            </div>
-            <div v-else>
-                <p>
-                    In this study we are testing how breathing to boost your alertness for 30 min/day affects people's emotion regulation.
-                </p>
-                <p>
-                    You will use a paced breathing sequence to maintain an alert state, during two 15-minute training sessions each day. In the first few days, we will be testing which breathing sequences work best for you.
-                </p>
-                <p>
-                    Throughout your practice session, we will show you your "coherence” score. This score indicates a pattern of heart rate associated with alertness. You should aim to keep the score high.
-                </p>
-            </div>
             <div>
-                If you start to feel lightheaded or dizzy, try breathing less deeply. If that doesn't help, remove the sensor from your ear and take a break. Try again later when you're feeling better. Try to breathe in a relaxed way without taking in more air than necessary to stay in synchrony with the pacer.
-                <br/>
+                <p>
+                    Throughout your session, you will see a "coherence” score. This score shows whether your body is relaxed, according to your heart rate.  The higher the score the better!
+                </p>
+                <p>
+                    If you start to feel lightheaded or dizzy, try breathing less deeply. If that doesn't help, remove the sensor from your ear and take a break. Try again later when you're feeling better. Try to breathe in a relaxed way without taking in more air than necessary to stay in synchrony with the pacer.
+                </p>
                 <button @click="instructionsRead">Continue</button>
             </div>
         </div>
         <div :class="{hidden: reloadNeeded || sessionDone || doneForToday || !hasSeenInstructions}">
             <div class="instructions" v-if="step == 1">
                 <p>
-                    We will now begin the breathing practice. Please start by attaching your pulse sensor to your ear and to the computer. Please remember to sit on a chair with your feet flat on the floor and hands resting on your legs for this breathing practice.
+                    Please start by attaching your pulse sensor to your ear and to the computer. Please remember to sit on a chair with your feet flat on the floor and hands resting on your legs for this breathing practice.
                 </p>
+                <img :src="seatedIcon" />
                 <p>
-                    Please breathe following the ball on the screen.
+                    Please breathe following the breath pacer on the screen.
                     Breathe in while the ball is moving up and breathe out while the ball is moving down.
                     Pause your breathing when the ball is not going up or down.
                     Make sure you have the pulse device attached to your ear, and click the "Start" button on the next screen when you're ready to begin.
@@ -75,6 +58,8 @@ import { SessionStore } from '../session-store.js'
 import TrainingComponent from './TrainingComponent.vue'
 import UploadComponent from './UploadComponent.vue'
 import { yyyymmddString } from '../utils'
+
+import seatedIcon from '../assets/seated-person.png'
 
 const props = defineProps(['stageNum'])
 let stage
