@@ -26,7 +26,13 @@
                 <button @click="step=2">Continue</button>
             </div>
             <div v-if="step == 2">
-                <TrainingComponent :showScore="false" :regimes=regimes :condition=condition @pacerFinished="pacerFinished"></TrainingComponent>
+                <div v-if="showEmoPic">
+                    <img class="emoPic" :src="emoPic" />
+                    <button @click="showEmoPic=false">Continue</button>
+                </div>
+                <div v-else>
+                    <TrainingComponent :regimes="[{durationMs: 18*60*1000, breathsPerMinute: pace, randomize: false}]" :factors=factors @pacerFinished="pacerFinished"></TrainingComponent>
+                </div>
             </div>
         </div>
 
@@ -57,7 +63,7 @@ import ApiClient from '../../../common/api/client.js'
 import { SessionStore } from '../session-store.js'
 import TrainingComponent from './TrainingComponent.vue'
 import UploadComponent from './UploadComponent.vue'
-import { yyyymmddString } from '../utils'
+import { yyyymmddString, conditionToFactors, emoPicExt } from '../utils'
 
 import seatedIcon from '../assets/seated-person.png'
 
@@ -72,25 +78,39 @@ let dateCheckInterval
 const reloadNeeded = ref(false)
 const step = ref(1)
 const regimes = ref([])
+const factors = ref(null)
+let emoPicNum
+const emoPic = ref(null)
+const showEmoPic = ref(false)
+const pace = ref(null)
 
 onBeforeMount(async() => {
-    stage = Number.parseInt(props.stageNum)
-    window.mainAPI.setStage(stage)
-    const session = await SessionStore.getRendererSession()
-    const apiClient = new ApiClient(session)
-    const data = await apiClient.getSelf()
-    condition.value = data.condition
-    hasSeenInstructions.value = await window.mainAPI.getKeyValue('hasSeenInstructions') === 'true'
-    await setRegimes()
-    dateCheckInterval = setInterval(() => {
-        const today = yyyymmddString(new Date());
-        if (today != startDay) {
-            // they've crossed into a new day
-            // force them to quit the app
-            reloadNeeded.value = true
-            clearInterval(dateCheckInterval)
+    try {
+        hasSeenInstructions.value = await window.mainAPI.getKeyValue('hasSeenInstructions') === 'true'
+        stage = Number.parseInt(props.stageNum)
+        window.mainAPI.setStage(stage)
+        const session = await SessionStore.getRendererSession()
+        const apiClient = new ApiClient(session)
+        const data = await apiClient.getSelf()
+        pace.value = data.pace
+        factors.value = conditionToFactors(data.condition)
+        if (factors.value.showPosEmoInstructions) {
+            emoPicNum = await window.mainAPI.getNextEmoPic()
+            emoPic.value = new URL(`../assets/emopics/${emoPicNum}${emoPicExt}`, import.meta.url).href
+            showEmoPic.value = true
         }
-    }, 60000);
+        dateCheckInterval = setInterval(() => {
+            const today = yyyymmddString(new Date());
+            if (today != startDay) {
+                // they've crossed into a new day
+                // force them to quit the app
+                reloadNeeded.value = true
+                clearInterval(dateCheckInterval)
+            }
+        }, 60000);
+    } catch (err) {
+        console.error(err)
+    }
 })
 
 async function instructionsRead() {
@@ -98,22 +118,14 @@ async function instructionsRead() {
     hasSeenInstructions.value = true
 }
 
-async function setRegimes() {
-    const sessRegimes = await window.mainAPI.regimesForSession(condition.value, stage)
-    doneForToday.value = sessRegimes.length == 0
-    sessionDone.value = sessRegimes.length == 0
-    regimes.value = sessRegimes
-}
-
 async function pacerFinished() {
     sessionDone.value = true
-    setTimeout(async () => { // use setTimeout to avoid race condition with the data from last regime being saved
-        // note we don't set regimes.value here
-        // doing so reloads the PacedBreathingComponent, losing its reference
-        // to the emwaveListener before we successfully stop the pulse sensor
-        const sessRegimes = await window.mainAPI.regimesForSession(condition.value, stage)
-        doneForToday.value = sessRegimes.length == 0
-    }, 50) 
+    setTimeout(async () => { // use setTimeout to give emWave a moment to save the session
+        const s = (await window.mainAPI.extractEmWaveSessionData(-1, false))[0]
+        await window.mainAPI.saveEmWaveSessionData(s.sessionUuid, s.avgCoherence, s.pulseStartTime, s.validStatus, s.durationSec, stage, emoPicNum)
+        
+        doneForToday.value = (await window.mainAPI.getgetEmWaveSessionMinutesForDayAndStage) >= 36 // two 18-minute sessions/day
+    }, 500) 
 }
 
 function quit() {
@@ -124,5 +136,8 @@ function quit() {
 <style scoped>
 .hidden {
     display: none;
+}
+.emoPic {
+    margin-left: -380px;
 }
 </style>
