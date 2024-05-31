@@ -62,6 +62,16 @@ export default class ApiClient {
     }
 
     /**
+     * TODO
+     * FOR TESTING ONLY - remove before going to production.
+     * Deletes all earnings and session records for the logged-in user.
+     */
+    async deleteSelf() {
+        const url = `${awsSettings.UserApiUrl}`;
+        return await this.doFetch(url, "delete", "There was an error deleting the earnings and sessions records for the user");
+    }
+
+    /**
      * 
      * @returns All participants in the database
      */

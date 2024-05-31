@@ -7,7 +7,7 @@ import { ipcMain } from 'electron';
 import { Logger } from 'logger'
 import emwave from './emwave';
 import { emWaveDbPath, deleteShortSessions as deleteShortEmwaveSessions, extractSessionData, getDataForSessions } from './emwave-data';
-import { breathDbPath, closeBreathDb, getKeyValue, setKeyValue, saveEmWaveSessionData, getEmWaveSessionsForStage, getNextEmoPic, getEmWaveSessionMinutesForDayAndStage } from './breath-data';
+import { breathDbPath, closeBreathDb, getKeyValue, setKeyValue, saveEmWaveSessionData, getEmWaveSessionsForStage, getNextEmoPic, getEmWaveSessionMinutesForDayAndStage, deleteAllData } from './breath-data';
 import version from "../version.json";
 import { SessionStore } from './session-store'
 import s3utils from './s3utils'
@@ -320,6 +320,10 @@ ipcMain.handle('set-stage', async(_event, stage) => {
 ipcMain.handle('quit', () => {
   app.quit();
 })
+
+ipcMain.handle('delete-local-data', () => {
+  deleteAllData();
+});
 
 
 // Quit when all windows are closed, except on macOS. There, it's common

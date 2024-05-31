@@ -171,6 +171,15 @@ function closeBreathDb() {
     if (db) db.close();
 }
 
+/**
+ * TODO
+ * FOR TESTING ONLY. Delete before building production version.
+ */
+function deleteAllData() {
+    const tableNames = ['key_value_store', 'emwave_sessions'];
+    tableNames.forEach(t => db.exec(`DELETE from ${t}`));
+}
+
 export {
     closeBreathDb,
     breathDbDir,
@@ -180,6 +189,7 @@ export {
     getNextEmoPic,
     saveEmWaveSessionData,
     getEmWaveSessionsForStage,
-    getEmWaveSessionMinutesForDayAndStage
+    getEmWaveSessionMinutesForDayAndStage,
+    deleteAllData
 }
 export const forTesting = { initBreathDb, downloadDatabase }

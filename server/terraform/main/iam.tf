@@ -285,6 +285,34 @@ resource "aws_iam_policy" "dynamodb-earnings-write" {
 POLICY
 }
 
+# TODO
+# FOR TESTING ONLY - delete this before going to production
+# policy to allow scans and batch writes of sessions, earnings tables,
+# so that user data can be deleted when switching conditions
+resource "aws_iam_policy" "dynamodb-earnings-sessions-read-write" {
+  name = "${var.project}-${var.env}-dynamodb-earnings-sessions-read-write"
+  path = "/policy/dynamodb/testing/only/"
+  description = "Allows reading/writing to/from dynamodb earnings and sessions tables"
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:Scan",
+        "dynamodb:BatchWriteItem"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:${var.region}:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.earnings-table.name}",
+        "arn:aws:dynamodb:${var.region}:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.sessions-table.name}"
+      ]
+    }
+  ]
+}
+POLICY
+}
+
 # IAM roles
 resource "aws_iam_role" "lambda-sqlite-process" {
   name = "${var.project}-${var.env}-lambda-sqlite-process"
@@ -413,6 +441,8 @@ resource "aws_iam_role" "unauthenticated" {
   }
 }
 
+# TODO TESTING ONLY remove aws_iam_policy.dynamodb-earnings-sessions-read-write
+# from managed_policy_arns before production
 resource "aws_iam_role" "lambda" {
   name = "${var.project}-${var.env}-lambda"
   path = "/role/lambda/"
@@ -435,6 +465,7 @@ resource "aws_iam_role" "lambda" {
   managed_policy_arns   = [
     aws_iam_policy.dynamodb-user-read-write.arn,
     aws_iam_policy.dynamodb-earnings-read.arn,
+    aws_iam_policy.dynamodb-earnings-sessions-read-write.arn,
     aws_iam_policy.cloudwatch-write.arn
   ]
 }
