@@ -21,7 +21,7 @@
         if (message === 'ConnectionFailure') {
             connectionError.value = true
         } else if (message === 'Connected') {
-            router.push({path: '/earnings'})
+            router.push({path: '/setup'})
         }
     }
 

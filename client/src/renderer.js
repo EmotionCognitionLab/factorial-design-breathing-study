@@ -49,11 +49,11 @@ import { SessionStore } from './session-store'
 
 
 const routes = [
-    { path: '/setup', component: SetupComponent, props: {loggedIn: false} },
+    { path: '/setup', beforeEnter: practiceOrSetup, component: SetupComponent, props: {loggedIn: false} },
     { path: '/upload', component: UploadComponent },
     { path: '/signin', component: LoginComponent, name: 'signin', props: true },
     { path: '/login', beforeEnter: handleOauthRedirect, component: OauthRedirectComponent }, // TODO eliminate now-obsolete OauthRedirectComponent; the beforeEnter guard is now doing all the work
-    { path: '/earnings', beforeEnter: earningsOrSetup, component: EarningsComponent },
+    { path: '/earnings', component: EarningsComponent },
     { path: '/stage/:stageNum', component: StageComponent, props: true },
     { path: '/donetoday', component: DoneTodayComponent},
     { path: '/alldone', component: StudyCompleteComponent},
@@ -62,7 +62,7 @@ const routes = [
 ]
 
 const noAuthRoutes = ['/signin', '/login', '/']
-const dbRequiredRoutes = ['/earnings', '/current-stage', '/condition']
+const dbRequiredRoutes = ['/earnings', '/current-stage', '/condition', '/setup']
 
 const router = createRouter({
     history: process.env.IS_ELECTRON ? createWebHashHistory() : createWebHistory(),
@@ -71,13 +71,13 @@ const router = createRouter({
 
 let isDbInitialized = false
 
-async function earningsOrSetup() {
+async function practiceOrSetup() {
     if (!isDbInitialized) {
         console.error(`Database is not initialized; unable to tell if participant requires setup.`)
         return false // TODO should we just send them through signup again?
     }
-    if (await window.mainAPI.getKeyValue('setupComplete') !== 'true') {
-        return { path: '/setup' }
+    if (await window.mainAPI.getKeyValue('setupComplete') == 'true') {
+        return { path: '/stage/2' }
     }
 
     return true
