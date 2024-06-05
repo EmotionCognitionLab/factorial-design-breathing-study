@@ -4,7 +4,8 @@ import path from 'path';
 import * as AmazonCognitoIdentity from 'amazon-cognito-auth-js';
 import awsSettings from '../../common/aws-settings.json';
 import { ipcMain } from 'electron';
-import { Logger } from 'logger'
+// import * as Logger from 'logger'
+const Logger = require('logger');
 import emwave from './emwave';
 import { emWaveDbPath, deleteShortSessions as deleteShortEmwaveSessions, extractSessionData, getDataForSessions } from './emwave-data';
 import { breathDbPath, closeBreathDb, getKeyValue, setKeyValue, saveEmWaveSessionData, getEmWaveSessionsForStage, getNextEmoPic, getEmWaveSessionMinutesForDayAndStage, deleteAllData } from './breath-data';

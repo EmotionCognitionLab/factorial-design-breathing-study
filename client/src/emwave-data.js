@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import { ipcMain, app } from 'electron'
-import { Logger } from 'logger'
+// import * as Logger from 'logger'
+const Logger = require('logger')
 
 let logger
 

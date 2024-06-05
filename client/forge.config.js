@@ -16,6 +16,7 @@ module.exports = {
       /yarn.lock/.test(file) ||
       /package-lock.json/.test(file)
     },
+    asar: true,
     prune: true
   },
   rebuildConfig: {},

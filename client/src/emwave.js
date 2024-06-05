@@ -4,7 +4,8 @@ import path from 'path';
 import { ipcMain, app } from 'electron';
 import CBuffer from 'CBuffer';
 import { epToCoherence } from './coherence.js';
-import {Logger} from 'logger';
+// import logger from 'logger';
+const Logger = require('logger')
 
 let logger = new Logger(false)
 logger.init() // TODO we should await this

@@ -52,7 +52,7 @@ class LocalStorage {
     }
 }
 
-export default class Logger {
+class Logger {
     /**
      * Creates and initializes Logger instance.
      * @param {*} override true to override console.log, .info, .warn and .error, false to leave them alone.
@@ -209,3 +209,5 @@ export default class Logger {
         if (loggingInterval.unref) loggingInterval.unref();
     }
 }
+
+export default Logger;
