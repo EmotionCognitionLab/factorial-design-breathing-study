@@ -65,7 +65,7 @@ const noAuthRoutes = ['/signin', '/login', '/']
 const dbRequiredRoutes = ['/earnings', '/current-stage', '/condition', '/setup']
 
 const router = createRouter({
-    history: process.env.IS_ELECTRON ? createWebHashHistory() : createWebHistory(),
+    history: import.meta.env.PROD ? createWebHashHistory() : createWebHistory(),
     routes: routes
 })
 
@@ -87,11 +87,14 @@ async function handleLoginSuccess(session) {
     SessionStore.session = session
     await window.mainAPI.loginSucceeded(session)
     isDbInitialized = true
+    console.debug('done with handleLoginSuccess', Date.now())
 }
 
 async function handleOauthRedirect() {
+    console.debug('in handleOauthRedirect', Date.now())
     const curUrl = window.location.href;
     if (curUrl.indexOf('?') > -1) {
+        console.debug('we have a query string', Date.now())
         // we're handling a redirect from the oauth server
         // take the code and state from query string and let cognito parse them
         const p = new Promise((res, rej) => {
@@ -110,15 +113,22 @@ async function handleOauthRedirect() {
         const session = await p
         await handleLoginSuccess(session)
     }
-    const dest = window.sessionStorage.getItem('FDS.postLoginPath') ? window.sessionStorage.getItem('FDS.postLoginPath') : '/'
-    window.sessionStorage.removeItem('FDS.postLoginPath')
-    router.push({path: dest})
+    console.debug('postLoginPath in handleOauthRedirect', window.sessionStorage.getItem('FDS.postLoginPath'))
+    // const dest = window.sessionStorage.getItem('FDS.postLoginPath') ? window.sessionStorage.getItem('FDS.postLoginPath') : '/'
+    // window.sessionStorage.removeItem('FDS.postLoginPath')
+    // router.push({path: dest})
 }
 
 // use navigation guards to handle authentication
 router.beforeEach(async (to) => {
+    console.debug('trying to go to', to, Date.now())
     // index.html means we're running as a packaged app and win.loadFile has been called
-    if (to.path.endsWith('index.html')) return { path: '/' }
+    if (to.path.endsWith('index.html')) {
+        console.debug('postLoginPath in beforeEach', window.sessionStorage.getItem('FDS.postLoginPath'))
+        const dest = window.sessionStorage.getItem('FDS.postLoginPath') ? window.sessionStorage.getItem('FDS.postLoginPath') : '/'
+        window.sessionStorage.removeItem('FDS.postLoginPath')
+        return {path: dest}
+    }
 
     if (!isAuthenticated() && !noAuthRoutes.includes(to.path)) {
         return { name: 'signin', query: { 'postLoginPath': to.path } }
