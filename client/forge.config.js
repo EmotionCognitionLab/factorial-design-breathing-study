@@ -1,5 +1,7 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+const fs = require('fs');
+const path = require('path');
 
 module.exports = {
   packagerConfig: {
@@ -20,6 +22,29 @@ module.exports = {
     prune: true
   },
   rebuildConfig: {},
+  hooks: {
+    packageAfterCopy: async (_config, buildPath) => {
+      const symlinkedModules = ['node_modules/logger', 'node_modules/pay-info'];
+
+      const deleteFn = (symlinkMod) => {
+        const target = path.join(buildPath, symlinkMod);
+        try {
+          fs.unlinkSync(target);
+          fs.lstatSync(target);
+          console.log('logger still exists');
+        } catch (err) {
+          if (err.code === 'ENOENT') {
+            console.log(`${target} has been deleted`)
+          } else {
+            console.error(err);
+          }
+        }
+      }
+
+      symlinkedModules.forEach(deleteFn)
+      
+    }
+  },
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
