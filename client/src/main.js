@@ -242,7 +242,12 @@ ipcMain.on('show-login-window', async () => {
       if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         await mainWin.loadURL(`http://localhost:5173/login${query}`);
       } else {
-        await mainWin.loadFile(appFileEntry);
+        const curUrl = mainWin.webContents.getURL();
+        if (curUrl.indexOf(awsSettings.AppWebDomain) > -1) {
+          // then we're currently showing an amazon login page and need to load
+          // our app to proceed
+          await mainWin.loadFile(appFileEntry);
+        }
         await mainWin.webContents.send('go-to', `/login${query}`);
       }
     }) 
