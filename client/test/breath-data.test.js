@@ -57,24 +57,24 @@ describe("Breathing data functions", () => {
         });
     });
 
-    it.only("should use an in-memory database in test", () => {
+    it("should use an in-memory database in test", () => {
         const path = bd.breathDbPath();
         expect(path).toBe(":memory:");
     });
 
-    it.only("getNextEmoPic should return the emotional picture with the fewest views", () => {
+    it("getNextEmoPic should return the emotional picture with the fewest views", () => {
         for (let i=1; i<emoPics.length; i++) {
-            bd.saveEmoPicView(emoPics[i]);
+            bd.saveEmWaveSessionData(`a${i}`, 1.19, 17136543, 1, 900, 2, emoPics[i]);
         }
         const nextPic = bd.getNextEmoPic();
         expect(nextPic).toBe(emoPics[0]);
     });
 
-    it.only("getNextEmoPic should handle the case where multiple pictures have the fewest views", () => {
+    it("getNextEmoPic should handle the case where multiple pictures have the fewest views", () => {
         const startIdx = 3;
         expect(startIdx).toBeLessThan(emoPics.length);
         for (let i=startIdx; i<emoPics.length; i++) {
-            bd.saveEmoPicView(emoPics[i]);
+            bd.saveEmWaveSessionData(`a${i}`, 1.19, 17136543, 1, 900, 2, emoPics[i]);
         }
         const nextPic = bd.getNextEmoPic();
         const expectedPossiblePics = emoPics.slice(0, startIdx);
