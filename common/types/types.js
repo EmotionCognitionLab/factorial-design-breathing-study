@@ -1,16 +1,21 @@
 export const earningsTypes = Object.freeze({
-    STREAK_BONUS1: 'streak_bonus1',
-    STREAK_BONUS2: 'streak_bonus2',
+    STREAK_BONUS: 'streak_bonus',
     BREATH1: 'breath1',
-    BREATH2: 'breath2'
+    COMPLETION_BREATH2: 'c_breath2',
+    PERFORMANCE_BREATH2: 'p_breath2',
+    TOP_66: 'top_66',
+    TOP_25: 'top_25'
 });
 
 export const earningsAmounts = Object.freeze({
-    [earningsTypes.STREAK_BONUS1]: 3,
-    [earningsTypes.STREAK_BONUS2]: 5,
-    [earningsTypes.BREATH1]: 7,
-    [earningsTypes.BREATH2]: 7
+    [earningsTypes.STREAK_BONUS]: 5,
+    [earningsTypes.BREATH1]: 3,
+    [earningsTypes.COMPLETION_BREATH2]: 7,
+    [earningsTypes.PERFORMANCE_BREATH2]: 3,
+    [earningsTypes.TOP_66]: 3,
+    [earningsTypes.TOP_25]: 4
 });
 
-export const totalStage2Segments = 12;
+export const maxSessionMinutes = 18;
+
 export const totalStage3Segments = 48;

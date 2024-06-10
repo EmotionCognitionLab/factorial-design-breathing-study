@@ -8,10 +8,13 @@ import { SessionStore } from './session-store.js'
 import version from '../version.json'
 import { emoPics } from './utils.js';
 import * as path from 'path'
+import { maxSessionMinutes } from '../../common/types/types.js';
+import lte from 'semver/functions/lte';
+import semverSort from 'semver/functions/sort';
+import gt from 'semver/functions/gt';
 
 let db;
 let insertKeyValueStmt, getKeyValueStmt;
-let insertEmWaveSessionStmt;
 
 function breathDbPath() {
    return path.join(breathDbDir(), 'fd-breath-study.sqlite');
@@ -52,12 +55,41 @@ function checkVersion() {
     const curVerStmt = db.prepare('SELECT version from version ORDER BY date_time DESC LIMIT 1');
     const res = curVerStmt.get();
     if (!res || res.version !== version.v) {
+        const curVer = res ? res.version : '0.0.0';
+        runDbUpdates(curVer, version.v);
         const updateVerStmt = db.prepare('INSERT INTO version(version, date_time) VALUES(?, ?)');
         const dateTime = (new Date()).toISOString();
         updateVerStmt.run(version.v, dateTime);
     }
 }
 
+// If there are db changes that need to happen with a particular version
+// (e.g., we've got active participants and need to upgrade their db's without
+// disturbing their data), add them here. The key should be the app version 
+// (as shown in client/version.json) and the value should be an array of DDL
+// strings.
+const dbUpdates = {
+    '0.1.0': ['ALTER TABLE emwave_sessions ADD weighted_avg_coherence FLOAT NOT NULL DEFAULT 0.0']
+}
+
+/**
+ * Given the current version of the database (from the most recent row in the version table)
+ * and the current version of the app (as shown in client/version.json), finds all of the
+ * keys in dbUpdates that are greater that the current db version and less than or equal
+ * to the current app version and runs the associated DDL statements.
+ * @param {string} curVersion 
+ * @param {string} targetVersion 
+ */
+function runDbUpdates(curVersion, targetVersion) {
+    const versionsWithUpdates = Object.keys(dbUpdates);
+    const validVersions = versionsWithUpdates.filter(v => gt(v, curVersion) && lte(v, targetVersion));
+    for (const version of semverSort(validVersions)) {
+        for (const upd of dbUpdates[version]) {
+            const stmt = db.prepare(upd);
+            stmt.run();
+        }
+    }
+}
 
 function setKeyValue(key, value) {
     insertKeyValueStmt.run(key, value);
@@ -88,12 +120,16 @@ function getNextEmoPic() {
 }
 
 function saveEmWaveSessionData(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage, emoPicName=null) {
+    const sessionMinutes = Math.min(Math.round(durationSec / 60), maxSessionMinutes); // participants don't get extra credit for doing sessions longer than max session length
+    const weightedAvgCoherence = (sessionMinutes / maxSessionMinutes) * avgCoherence;
+
     if (emoPicName) {
-        insertEmWaveSessionStmt.run(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage, emoPicName);
+        const insertStmt = db.prepare('INSERT INTO emwave_sessions(emwave_session_id, avg_coherence, weighted_avg_coherence, pulse_start_time, valid_status, duration_seconds, stage, emo_pic_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        insertStmt.run(emWaveSessionId, avgCoherence, weightedAvgCoherence, pulseStartTime, validStatus, durationSec, stage, emoPicName);
     } else {
         // used for non-emopic conditition participants and for setup sessions
-        const insertStmt = db.prepare('INSERT INTO emwave_sessions(emwave_session_id, avg_coherence, pulse_start_time, valid_status, duration_seconds, stage) VALUES (?, ?, ?, ?, ?, ?)');
-        insertStmt.run(emWaveSessionId, avgCoherence, pulseStartTime, validStatus, durationSec, stage);
+        const insertStmt = db.prepare('INSERT INTO emwave_sessions(emwave_session_id, avg_coherence, weighted_avg_coherence, pulse_start_time, valid_status, duration_seconds, stage) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        insertStmt.run(emWaveSessionId, avgCoherence, weightedAvgCoherence, pulseStartTime, validStatus, durationSec, stage);
     }
 }
 
@@ -116,6 +152,12 @@ function getEmWaveSessionMinutesForDayAndStage(date, stage) {
     const stmt = db.prepare('SELECT sum(duration_seconds) as total_seconds FROM emwave_sessions where stage = ? and pulse_start_time >= ? and pulse_start_time <= ?');
     const result = stmt.all()[0].total_seconds;
     return Math.round(result / 60);
+}
+
+function getEmWaveWeightedAvgCoherencesForStage(stage) {
+    const stmt = db.prepare('SELECT weighted_avg_coherence FROM emwave_sessions WHERE stage = ?');
+    const result = stmt.all(stage);
+    return result.map(rowToObject);
 }
 
 // import this module into itself so that we can mock
@@ -142,10 +184,6 @@ async function initBreathDb(serializedSession) {
         // either way, we can let sqlite create the database
         // if necessary
         db = new Database(testable.breathDbPath());
-        
-        const createVersionTableStmt = db.prepare('CREATE TABLE IF NOT EXISTS version(version TEXT PRIMARY KEY, date_time TEXT NOT NULL)');
-        createVersionTableStmt.run();
-        checkVersion();
 
         const createKeyValueTableStmt = db.prepare('CREATE TABLE IF NOT EXISTS key_value_store(name TEXT PRIMARY KEY, value TEXT NOT NULL)');
         createKeyValueTableStmt.run();
@@ -154,7 +192,13 @@ async function initBreathDb(serializedSession) {
 
         const createSessionTableStmt = db.prepare('CREATE TABLE IF NOT EXISTS emwave_sessions(emwave_session_id TEXT PRIMARY KEY, avg_coherence FLOAT NOT NULL, pulse_start_time INTEGER NOT NULL, valid_status INTEGER NOT NULL, duration_seconds INTEGER NOT NULL, stage INTEGER NOT NULL, emo_pic_name TEXT)');
         createSessionTableStmt.run();
-        insertEmWaveSessionStmt = db.prepare('INSERT INTO emwave_sessions(emwave_session_id, avg_coherence, pulse_start_time, valid_status, duration_seconds, stage, emo_pic_name) VALUES (?, ?, ?, ?, ?, ?, ?)');
+
+        const createVersionTableStmt = db.prepare('CREATE TABLE IF NOT EXISTS version(version TEXT PRIMARY KEY, date_time TEXT NOT NULL)');
+        createVersionTableStmt.run();
+        // checkVersion should be the last thing here that runs any sql statements;
+        // it may modify existing tables
+
+        checkVersion();
 
         return db;
     } catch (err) {
@@ -190,6 +234,7 @@ export {
     saveEmWaveSessionData,
     getEmWaveSessionsForStage,
     getEmWaveSessionMinutesForDayAndStage,
+    getEmWaveWeightedAvgCoherencesForStage,
     deleteAllData
 }
 export const forTesting = { initBreathDb, downloadDatabase }

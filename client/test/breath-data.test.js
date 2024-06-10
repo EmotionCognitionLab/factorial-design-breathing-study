@@ -1,5 +1,6 @@
 import { emoPics } from '../src/utils.js';
 import * as bd from "../src/breath-data";
+import { maxSessionMinutes } from '../../common/types/types.js';
 
 jest.mock('fs/promises', () => ({
     mkdir: jest.fn(() => {})
@@ -79,6 +80,19 @@ describe("Breathing data functions", () => {
         const nextPic = bd.getNextEmoPic();
         const expectedPossiblePics = emoPics.slice(0, startIdx);
         expect(expectedPossiblePics).toContain(nextPic);
+    });
+
+    it("should calculate and save weighted avg coherence when saving emwave data", () => {
+        const avgCoh = 4.0;
+        const durationMin = 9;
+        const durationSec = durationMin * 60;
+        const stage = 2
+        bd.saveEmWaveSessionData('b1', avgCoh, Date.now(), 1, durationSec, stage);
+
+        const wac = bd.getEmWaveWeightedAvgCoherencesForStage(stage);
+        expect(wac.length).toBe(1);
+        const expectedWeightedCoherence = (durationMin / maxSessionMinutes) * avgCoh;
+        expect(wac[0].weightedAvgCoherence).toBe(expectedWeightedCoherence);
     });
 
 });
