@@ -150,7 +150,7 @@ function getEmWaveSessionMinutesForDayAndStage(date, stage) {
     date.setHours(23); date.setMinutes(59); date.setSeconds(59); date.setMilliseconds(999);
     const endPulseTime = Math.round(date.getTime() / 1000);
     const stmt = db.prepare('SELECT sum(duration_seconds) as total_seconds FROM emwave_sessions where stage = ? and pulse_start_time >= ? and pulse_start_time <= ?');
-    const result = stmt.all()[0].total_seconds;
+    const result = stmt.all(stage, startPulseTime, endPulseTime)[0].total_seconds;
     return Math.round(result / 60);
 }
 
