@@ -31,7 +31,7 @@
                     <button @click="showEmoPic=false">Continue</button>
                 </div>
                 <div v-else>
-                    <TrainingComponent :regimes="[{durationMs: 18*60*1000, breathsPerMinute: pace, randomize: false}]" :factors=factors @pacerFinished="pacerFinished"></TrainingComponent>
+                    <TrainingComponent :regimes="[{durationMs: sessionDurationMs, breathsPerMinute: pace, randomize: false}]" :factors=factors @pacerFinished="pacerFinished"></TrainingComponent>
                 </div>
             </div>
         </div>
@@ -64,6 +64,7 @@ import { SessionStore } from '../session-store.js'
 import TrainingComponent from './TrainingComponent.vue'
 import UploadComponent from './UploadComponent.vue'
 import { yyyymmddString, conditionToFactors, emoPicExt } from '../utils'
+import { maxSessionMinutes } from '../../../common/types/types.js'
 
 import seatedIcon from '../assets/seated-person.png'
 
@@ -81,6 +82,7 @@ let emoPicNum
 const emoPic = ref(null)
 const showEmoPic = ref(false)
 const pace = ref(null)
+const sessionDurationMs = ref(maxSessionMinutes*60*1000)
 
 onBeforeMount(async() => {
     try {
@@ -97,6 +99,11 @@ onBeforeMount(async() => {
             emoPic.value = new URL(`../assets/emopics/${emoPicNum}${emoPicExt}`, import.meta.url).href
             showEmoPic.value = true
         }
+        
+        const minutesDoneToday = await window.mainAPI.getEmWaveSessionMinutesForDayAndStage(new Date(), 2)
+        const remainingMinutes = (2 * maxSessionMinutes) - minutesDoneToday
+        sessionDurationMs.value = Math.min(maxSessionMinutes, remainingMinutes) * 60 * 1000
+
         dateCheckInterval = setInterval(() => {
             const today = yyyymmddString(new Date());
             if (today != startDay) {
