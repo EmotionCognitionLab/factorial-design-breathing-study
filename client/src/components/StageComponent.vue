@@ -122,7 +122,7 @@ async function pacerFinished() {
         const s = (await window.mainAPI.extractEmWaveSessionData(-1, false))[0]
         await window.mainAPI.saveEmWaveSessionData(s.sessionUuid, s.avgCoherence, s.pulseStartTime, s.validStatus, s.durationSec, stage, emoPicNum)
         
-        doneForToday.value = (await window.mainAPI.getgetEmWaveSessionMinutesForDayAndStage) >= 36 // two 18-minute sessions/day
+        doneForToday.value = (await window.mainAPI.getEmWaveSessionMinutesForDayAndStage(new Date(), 2)) >= 36 // two 18-minute sessions/day
     }, 500) 
 }
 
