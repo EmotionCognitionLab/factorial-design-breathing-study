@@ -55,7 +55,7 @@ resource "aws_dynamodb_table" "earnings-table" {
   name           = "${var.project}-${var.env}-earnings"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "userId"
-  range_key      = "typeDate"
+  range_key      = "dateType"
   point_in_time_recovery {
     enabled = "${terraform.workspace == "prod" ? true : false}"
   }
@@ -66,7 +66,7 @@ resource "aws_dynamodb_table" "earnings-table" {
   }
 
   attribute {
-    name = "typeDate"
+    name = "dateType"
     type = "S"
   }
 }

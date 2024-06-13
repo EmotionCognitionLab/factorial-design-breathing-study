@@ -8,7 +8,7 @@
  import { DynamoDBDocumentClient, ScanCommand, QueryCommand, UpdateCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
  import { Logger } from "logger";
  import { getAuth } from "../auth/auth.js";
- import { earningsTypes, earningsAmounts } from "../types/types.js";
+ import { earningsAmounts } from "../types/types.js";
  
  
  'use strict';
@@ -126,7 +126,7 @@ export default class Db {
         }
     }
     
-    async earningsForUser(userId, type = null) {
+    async earningsForUser(userId) {
         try {
             const params =  {
                 TableName: this.earningsTable,
@@ -135,23 +135,21 @@ export default class Db {
                     ':uid': userId,
                 }
             };
-            if (type) {
-                params.KeyConditionExpression += ' and begins_with(typeDate, :td)';
-                params.ExpressionAttributeValues[':td'] = type;
-            }
 
             const results = await this.query(params);
             return results.Items.map(i => {
-                const parts = i.typeDate.split('|');
-                if (parts.length !== 2) {
-                    throw new Error(`Unexpected typeDate value: ${i.typeDate}. Expected two parts, but found ${parts.length}.`);
+                const parts = i.dateType.split('|');
+                if (parts.length < 2 || parts.length > 3) {
+                    throw new Error(`Unexpected dateType value: ${i.dateType}. Expected two or three parts, but found ${parts.length}.`);
                 }
-                const type = parts[0];
-                const date = parts[1];
+                const date = parts[0];
+                const type = parts[1];
+                const sessionId = parts.length == 3 ? parts[2] : null;
                 return {
                     userId: i.userId,
                     type: type,
                     date: date,
+                    sessionId: sessionId,
                     amount: i.amount
                 };
             });
@@ -161,28 +159,21 @@ export default class Db {
         }
     }
 
-    async saveEarnings(userId, earningsType, date) {
-        let amount;
-        switch(earningsType) {
-            case earningsTypes.BREATH1:
-            case earningsTypes.BREATH2:
-            case earningsTypes.STREAK_BONUS1:
-            case earningsTypes.STREAK_BONUS2:
-                amount = earningsAmounts[earningsType]
-                break;
-            default:
-                throw new Error(`Unrecognized earnings type ${earningsType}.`);
-        }
+    async saveEarnings(userId, earningsType, date, sessionId = null) {
+        const amount = earningsAmounts[earningsType]
+        if (!amount) throw new Error(`Unrecognized earnings type ${earningsType}.`);
+
         try {
             const params = {
                 TableName: this.earningsTable,
                 Key: {
                     userId: userId,
-                    typeDate: `${earningsType}|${date}`
+                    dateType: `${date}|${earningsType}`
                 },
                 UpdateExpression: `set amount = :amount`,
                 ExpressionAttributeValues: { ':amount': amount }
             };
+            if (sessionId) params.Key.dateType += `|${sessionId}`;
             await this.update(params);
         } catch (err) {
             this.logger.error(err);
