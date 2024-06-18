@@ -249,13 +249,15 @@ describe("Building abstract sessions", () => {
 
         const res = forTesting.realSessionsToAbstractSessions(data);
         expect(res.length).toBe(3);
-        expect(res).toEqual(expect.arrayContaining([{
-            avgCoherence: (data[0].weightedAvgCoherence + data[1].weightedAvgCoherence) / 2,
+        const expectedResults = sqliteSessionsToDynamoSessions(data);
+        expectedResults.push({
+            weightedAvgCoherence: (data[0].weightedAvgCoherence + data[1].weightedAvgCoherence) / 2,
             startDateTime: data[0].pulseStartTime,
             isComplete: true,
             isAbstract: true,
             durationSec: data[0].durationSec + data[1].durationSec
-        }]));
+        })
+        expect(res).toEqual(expect.arrayContaining([]));
     });
 
     it("should not combine sessions shorter than 18 minutes that happen on different days", () => {
@@ -272,13 +274,14 @@ describe("Building abstract sessions", () => {
 
     it("should not error if a session is longer than 18 minutes", () => {
         const data = [
-            {pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 10)), durationSec: 19*60, weightedAvgCoherence: 2.0},
+            {pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 10)), durationSec: 19*60, avgCoherence: 2.0, weightedAvgCoherence: 2.0},
         ];
 
         const res = forTesting.realSessionsToAbstractSessions(data);
         expect(res.length).toBe(1);
         expect(res).toEqual(expect.arrayContaining([{
-            avgCoherence: data[0].weightedAvgCoherence,
+            avgCoherence: data[0].avgCoherence,
+            weightedAvgCoherence: data[0].weightedAvgCoherence,
             startDateTime: data[0].pulseStartTime,
             isComplete: true,
             durationSec: data[0].durationSec
@@ -300,17 +303,17 @@ describe("Building abstract sessions", () => {
 
     it("should return all original sessions and new abstract ones without marking original sessions < 18 minutes long as complete or abstract", () => {
         const data = [
-            {pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 10)), durationSec: 1*60, weightedAvgCoherence: 2.0},
-            {pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 12)), durationSec: 3*60, weightedAvgCoherence: 7.1},
-            {pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 16)), durationSec: 14*60, weightedAvgCoherence: 6.4},
-            {pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 32)), durationSec: 17*60, weightedAvgCoherence: 3.0}
+            {pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 10)), durationSec: 1*60, avgCoherence: 36.0, weightedAvgCoherence: 2.0},
+            {pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 12)), durationSec: 3*60, avgCoherence: 21.3, weightedAvgCoherence: 7.1},
+            {pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 16)), durationSec: 14*60, avgCoherence: 8.23, weightedAvgCoherence: 6.4},
+            {pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 32)), durationSec: 17*60, avgCoherence: 3.18, weightedAvgCoherence: 3.0}
         ];
 
         const res = forTesting.realSessionsToAbstractSessions(data);
         expect(res.length).toBe(5);
         const expectedResults = sqliteSessionsToDynamoSessions(data);
         expectedResults.push({
-            avgCoherence: (data[0].weightedAvgCoherence + data[3].weightedAvgCoherence) / 2,
+            weightedAvgCoherence: (data[0].weightedAvgCoherence + data[3].weightedAvgCoherence) / 2,
             startDateTime: data[0].pulseStartTime,
             isComplete: true,
             isAbstract: true,
@@ -342,17 +345,17 @@ describe("Building abstract sessions", () => {
         expect(res).toEqual(expect.arrayContaining(expectedResults));
     });
 
-    it("should not give an emWave session id to an abstract sessions", () => {
+    it("should not give an emWave session id or average coherence to an abstract sessions", () => {
         const data = [
-            {emWaveSessionId: 'abd153', pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 10)), durationSec: 1*60, weightedAvgCoherence: 2.0},
-            {emWaveSessionId: 'bce951', pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 16)), durationSec: 17*60, weightedAvgCoherence: 6.4},
+            {emWaveSessionId: 'abd153', pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 10)), durationSec: 1*60, avgCoherence: 36.0, weightedAvgCoherence: 2.0},
+            {emWaveSessionId: 'bce951', pulseStartTime: dateToEpochSeconds(new Date(2024, 3, 19, 9, 16)), durationSec: 17*60, avgCoherence: 6.78, weightedAvgCoherence: 6.4},
         ];
 
         const res = forTesting.realSessionsToAbstractSessions(data);
         expect(res.length).toBe(3);
         const expectedResults = sqliteSessionsToDynamoSessions(data);
         expectedResults.push({
-            avgCoherence: (data[0].weightedAvgCoherence + data[1].weightedAvgCoherence) / 2,
+            weightedAvgCoherence: (data[0].weightedAvgCoherence + data[1].weightedAvgCoherence) / 2,
             startDateTime: data[0].pulseStartTime,
             isComplete: true,
             isAbstract: true,
@@ -381,8 +384,6 @@ function sqliteSessionsToDynamoSessions(sessions) {
     for (const s of sessions) {
         const expected = Object.assign({}, s);
         if (s.durationSec >= maxSessionMinutes * 60) expected.isComplete = true;
-        expected.avgCoherence = s.weightedAvgCoherence;
-        delete(expected.weightedAvgCoherence);
         expected.startDateTime = s.pulseStartTime;
         delete(expected.pulseStartTime);
         results.push(expected);

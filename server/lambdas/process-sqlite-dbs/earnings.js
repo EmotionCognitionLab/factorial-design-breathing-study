@@ -164,7 +164,13 @@ const realSessionsToAbstractSessions = (sessions) => {
     // length are grouped by day for processing into abstract sessions
     for (const s of sessions) {
         const durMin = Math.round(s.durationSec / 60);
-        const sess = {emWaveSessionId: s.emWaveSessionId, startDateTime: s.pulseStartTime, durationSec: s.durationSec, avgCoherence: s.weightedAvgCoherence};
+        const sess = {
+            emWaveSessionId: s.emWaveSessionId,
+            startDateTime: s.pulseStartTime,
+            durationSec: s.durationSec,
+            avgCoherence: s.avgCoherence,
+            weightedAvgCoherence: s.weightedAvgCoherence
+        };
         if (durMin >= maxSessionMinutes) sess['isComplete'] = true;
         if (s.emoPicName) sess['emoPicName'] = s.emoPicName;
         results.push(sess);
@@ -191,7 +197,7 @@ const realSessionsToAbstractSessions = (sessions) => {
                 durationSec += s[i].durationSec;
                 cohSum += s[i].coherence
             }
-            results.push({startDateTime: startDateTime, durationSec: durationSec, avgCoherence: cohSum / s.length, isComplete: true, isAbstract: true});
+            results.push({startDateTime: startDateTime, durationSec: durationSec, weightedAvgCoherence: cohSum / s.length, isComplete: true, isAbstract: true});
         }
     }
 
