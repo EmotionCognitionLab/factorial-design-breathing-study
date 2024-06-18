@@ -35,12 +35,12 @@ describe("quality rewards", () => {
         allMock.mockClear();
     });
 
-    const latestQualityEarnings = [{
+    const latestQualityEarnings = {
         userId: 'abc123',
         date: '2024-03-09', 
         type: earningsTypes.STREAK_BONUS,
         amount: 5
-    }];
+    };
 
     it("should throw an error if the condition is < 0", () => {
         expect(() => trainingQualityRewards(sqliteMock, -9, latestQualityEarnings)).toThrow();
@@ -52,8 +52,8 @@ describe("quality rewards", () => {
 
     describe("for completion conditions", () => {
         it("should not be granted if they have received a streak bonus in the prior three days", () => {
-            const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
-            const latestEarnings = [{ userId: 'ab12', type: earningsTypes.STREAK_BONUS, date: yesterday }];
+            const yesterday = dayjs().subtract(1, 'day').format();
+            const latestEarnings = { userId: 'ab12', type: earningsTypes.STREAK_BONUS, date: yesterday };
 
             const res = trainingQualityRewards(sqliteMock, 2, latestEarnings);
             expect(sqliteMock.prepare().all).not.toHaveBeenCalled();
@@ -73,7 +73,7 @@ describe("quality rewards", () => {
             allMock.mockReturnValueOnce(dbResults);
 
             const lastStreakDate = dayjs.tz('2024-03-02', 'YYYY-MM-DD', 'America/Los_Angeles');
-            const res = trainingQualityRewards(sqliteMock, 2, [{ userId: 'ab12', type: earningsTypes.STREAK_BONUS, date: lastStreakDate.format('YYYY-MM-DD') }]);
+            const res = trainingQualityRewards(sqliteMock, 2, { userId: 'ab12', type: earningsTypes.STREAK_BONUS, date: lastStreakDate.format() });
             expect(allMock).toHaveBeenCalledTimes(1);
             expect(allMock.mock.calls[0][0]).toBe(lastStreakDate.add(1, 'day').unix());
             expect(res).toStrictEqual([]);
@@ -90,10 +90,17 @@ describe("quality rewards", () => {
             allMock.mockReturnValueOnce(dbResults);
 
             const lastStreakDate = dayjs.tz('2024-03-02', 'YYYY-MM-DD', 'America/Los_Angeles');
-            const res = trainingQualityRewards(sqliteMock, 2, [{ userId: 'ab12', type: earningsTypes.STREAK_BONUS, date: lastStreakDate.format('YYYY-MM-DD') }]);
+            const res = trainingQualityRewards(sqliteMock, 2, { userId: 'ab12', type: earningsTypes.STREAK_BONUS, date: lastStreakDate.format() });
             expect(allMock).toHaveBeenCalledTimes(1);
             expect(allMock.mock.calls[0][0]).toBe(lastStreakDate.add(1, 'day').unix());
-            expect(res).toStrictEqual([{day: dbResults[2].day, earnings: [earningsTypes.STREAK_BONUS]}]);
+            expect(res).toStrictEqual([{
+                day: dayjs.tz(dbResults[2].day, 'YYYY-MM-DD', 'America/Los_Angeles').format(), 
+                earnings: [earningsTypes.STREAK_BONUS]
+            }]);
+        });
+
+        it(`should throw an error if the most recent earning type is not ${earningsTypes.STREAK_BONUS}`, () => {
+            expect(() => trainingQualityRewards(sqliteMock, 72, {userId: 'abc123', date: '2024-06-05T19:03:11-07:00', type: earningsTypes.TOP_25, amount: 3})).toThrow();
         });
     });
 
@@ -142,7 +149,7 @@ describe("time rewards", () => {
     });
 
     const testSecondSessionReward = (date, condition) => {
-        const earnings = {userId: 'ab12', date: date.format('YYYY-MM-DD'), type: earningsTypes.BREATH1, amount: 2};
+        const earnings = {userId: 'ab12', date: date.format(), type: earningsTypes.BREATH1, amount: 2};
         allMock.mockReturnValueOnce([{
             day: date.format('YYYY-MM-DD'),
             minutes: 38
@@ -150,17 +157,21 @@ describe("time rewards", () => {
         return trainingTimeRewards(sqliteMock, condition, earnings);
     }
 
+    const formatDate = (yyyyMMDD) => {
+        return dayjs.tz(yyyyMMDD, 'YYYY-MM-DD', 'America/Los_Angeles').format();
+    }
+
     it("should give a reward for the second session on the same day", () => {
         const today = dayjs().subtract(1, 'hour').tz('America/Los_Angeles');
         const res = testSecondSessionReward(today, 26);
         expect(allMock).toHaveBeenCalledTimes(1);
-        expect(res).toEqual(expect.arrayContaining([{ day: today.format('YYYY-MM-DD'), earnings: [ earningsTypes.COMPLETION_BREATH2 ] }]));
-        expect(allMock.mock.calls[0][0]).toEqual(today.startOf('day').unix());
+        expect(res).toEqual(expect.arrayContaining([{ day: today.startOf('day').format(), earnings: [ earningsTypes.COMPLETION_BREATH2 ] }]));
+        expect(allMock.mock.calls[0][0]).toEqual(today.unix());
     });
 
     it("should not give a reward after the second session on the same day", () => {
         const today = dayjs().subtract(1, 'hour').tz('America/Los_Angeles');
-        const earnings = {userId: 'ab12', date: today.format('YYYY-MM-DD'), type: earningsTypes.PERFORMANCE_BREATH2, amount: 2};
+        const earnings = {userId: 'ab12', date: today.format(), type: earningsTypes.PERFORMANCE_BREATH2, amount: 2};
         allMock.mockReturnValueOnce([{
             day: today.format('YYYY-MM-DD'),
             minutes: 38
@@ -168,7 +179,7 @@ describe("time rewards", () => {
         const res = trainingTimeRewards(sqliteMock, 25, earnings);
         expect(allMock).toHaveBeenCalledTimes(1);
         expect(res).toStrictEqual([]);
-        expect(allMock.mock.calls[0][0]).toEqual(today.add(1, 'day').startOf('day').unix());
+        expect(allMock.mock.calls[0][0]).toEqual(today.add(1, 'day').unix());
     });
 
     it("should give rewards for all eligible days if there are no previous earnings", () => {
@@ -194,13 +205,13 @@ describe("time rewards", () => {
         expect(allMock).toHaveBeenCalledTimes(1);
         expect(res).toEqual(expect.arrayContaining([
             {
-                day: '2024-03-09', earnings: [earningsTypes.BREATH1, earningsTypes.PERFORMANCE_BREATH2]
+                day: formatDate('2024-03-09'), earnings: [earningsTypes.BREATH1, earningsTypes.PERFORMANCE_BREATH2]
             },
             {
-                day: '2024-03-11', earnings: [earningsTypes.BREATH1]
+                day: formatDate('2024-03-11'), earnings: [earningsTypes.BREATH1]
             },
             {
-                day: '2024-03-12', earnings: [earningsTypes.BREATH1, earningsTypes.PERFORMANCE_BREATH2]
+                day: formatDate('2024-03-12'), earnings: [earningsTypes.BREATH1, earningsTypes.PERFORMANCE_BREATH2]
             },
         ]));
         expect(allMock.mock.calls[0][0]).toEqual(dayjs('1970-01-01 00:00').tz('America/Los_Angeles').unix());
@@ -211,8 +222,8 @@ describe("time rewards", () => {
             const today = dayjs().subtract(1, 'hour').tz('America/Los_Angeles');
             const res = testSecondSessionReward(today, 26);
             expect(allMock).toHaveBeenCalledTimes(1);
-            expect(res).toEqual(expect.arrayContaining([{ day: today.format('YYYY-MM-DD'), earnings: [ earningsTypes.COMPLETION_BREATH2 ] }]));
-            expect(allMock.mock.calls[0][0]).toEqual(today.startOf('day').unix());
+            expect(res).toEqual(expect.arrayContaining([{ day: today.startOf('day').format(), earnings: [ earningsTypes.COMPLETION_BREATH2 ] }]));
+            expect(allMock.mock.calls[0][0]).toEqual(today.unix());
         });
     });
 
@@ -221,8 +232,8 @@ describe("time rewards", () => {
             const today = dayjs().subtract(1, 'hour').tz('America/Los_Angeles');
             const res = testSecondSessionReward(today, 17);
             expect(allMock).toHaveBeenCalledTimes(1);
-            expect(res).toEqual(expect.arrayContaining([{ day: today.format('YYYY-MM-DD'), earnings: [ earningsTypes.PERFORMANCE_BREATH2 ] }]));
-            expect(allMock.mock.calls[0][0]).toEqual(today.startOf('day').unix());
+            expect(res).toEqual(expect.arrayContaining([{ day: today.startOf('day').format(), earnings: [ earningsTypes.PERFORMANCE_BREATH2 ] }]));
+            expect(allMock.mock.calls[0][0]).toEqual(today.unix());
         });
     });
 });

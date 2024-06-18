@@ -41,10 +41,10 @@ export const trainingTimeRewards = (sqliteDb, condition, latestTimeEarnings) => 
         startDay = dayjs('1970-01-01 00:00').tz('America/Los_Angeles');
     } else if (latestTimeEarnings.type == earningsTypes.BREATH1) {
         // they can still earn a *_BREATH2 reward for this day
-        startDay = dayjs.tz(latestTimeEarnings.date, 'YYYY-MM-DD', 'America/Los_Angeles');
+        startDay = dayjs(latestTimeEarnings.date);
     } else {
         // there's no other time-based reward for this day - move to the next one
-        startDay = dayjs.tz(latestTimeEarnings.date, 'YYYY-MM-DD', 'America/Los_Angeles').add(1, 'day');
+        startDay = dayjs(latestTimeEarnings.date).add(1, 'day');
     }
 
     const stmt = sqliteDb.prepare(minutesPerDayQuery);
@@ -62,7 +62,7 @@ export const trainingTimeRewards = (sqliteDb, condition, latestTimeEarnings) => 
                 earningsForDay = earningsForDay.filter(e => e !== earningsTypes.BREATH1)
             }
         }
-        if (earningsForDay) newEarnings.push({day: res.day, earnings: earningsForDay});
+        if (earningsForDay) newEarnings.push({day: earningsDay.format(), earnings: earningsForDay});
         
     }
 
@@ -78,7 +78,6 @@ export const trainingTimeRewards = (sqliteDb, condition, latestTimeEarnings) => 
  */
 const trainingTimeEarningsForDay = (minutes, condition) => {
     if (minutes < 0) throw new Error(`Expected seconds to be greater than 0, but got ${minutes}.`);
-    if (condition < 0 || condition > 63) throw new Error(`Expected condition to be between 0 and 63, but got ${condition}.`);
 
     const rewardCondition = condition % 2 == 0 ? 'completion' : 'performance';
     const totalSessions = Math.min(minutesToSessions(minutes), 2); // we don't pay for more than 2 sessions/day
@@ -101,10 +100,12 @@ export const trainingQualityRewards = (sqliteDB, condition, latestQualityEarning
 }
 
 const completionQualityRewards = (sqliteDb, latestQualityEarnings) => {
-    const streakEarnings = latestQualityEarnings.filter(e => e.type === earningsTypes.STREAK_BONUS).pop(); // list should be ordered asc by date
+    if (latestQualityEarnings && latestQualityEarnings.type !== earningsTypes.STREAK_BONUS) {
+        throw new Error(`Latest earning type is invalid for completion quality reward. Expected ${earningsTypes.STREAK_BONUS}, but got ${latestQualityEarnings.type}.`);
+    }
 
-    const lastStreakDateStr = streakEarnings ? streakEarnings.date : '1970-01-01';
-    const lastStreakDate = dayjs.tz(lastStreakDateStr, 'YYYY-MM-DD', 'America/Los_Angeles');
+    const lastStreakDateStr = latestQualityEarnings ? latestQualityEarnings.date : '1970-01-01T00:00:00-07:00';
+    const lastStreakDate = dayjs(lastStreakDateStr);
     const threeDaysAgo = dayjs().tz('America/Los_Angeles').subtract(2, 'days').startOf('day'); // can only earn a streak bonus every three days, including today
     if (lastStreakDate.isSameOrAfter(threeDaysAgo, 'day')) {
         return [];
@@ -126,7 +127,7 @@ const completionQualityRewards = (sqliteDb, latestQualityEarnings) => {
             minutesByDay[i].minutes >= maxSessionMinutes && 
             minutesByDay[i+1].minutes >= maxSessionMinutes)
         {
-            earnings.push({day: nextDay.format('YYYY-MM-DD'), earnings: [earningsTypes.STREAK_BONUS]})
+            earnings.push({day: nextDay.format(), earnings: [earningsTypes.STREAK_BONUS]})
         } else {
             continue;
         }
