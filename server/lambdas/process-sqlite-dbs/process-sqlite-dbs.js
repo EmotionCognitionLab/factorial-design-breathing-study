@@ -3,13 +3,22 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { QueryCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb'
 import { s3Client as s3 , dynamoDocClient as docClient } from '../common/aws-clients';
-import { totalStage3Segments } from '../../../common/types/types.js';
+import { totalStage3Segments, maxSessionMinutes } from '../../../common/types/types.js';
 import { trainingTimeRewards } from './earnings.js';
 import Db from 'db/db.js';
 import Database from 'better-sqlite3';
 import { mkdtemp, rm, writeFile } from 'fs/promises';
 import { camelCase, zipObject } from 'lodash'
 const path = require('path');
+const dayjs = require('dayjs')
+const timezone = require('dayjs/plugin/timezone');
+const utc = require('dayjs/plugin/utc');
+const customParseFormat = require('dayjs/plugin/customParseFormat.js');
+const isSameOrAfter = require('dayjs/plugin/isSameOrAfter.js');
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(customParseFormat);
+dayjs.extend(isSameOrAfter);
 
 const sessionsTable = process.env.SESSIONS_TABLE;
 
@@ -183,3 +192,103 @@ const rowToObject = (result) => {
     const rowVals = Object.values(result);
     return zipObject(rowProps, rowVals);
 }
+
+
+/**
+ * Given a list of "real" sessions, 
+ * builds "abstract" complete sessions from them.
+ * Returns the original list of sessions mingled
+ * with the new, abstract sessions.
+ * @param {[]} sessions 
+ */
+const realSessionsToAbstractSessions = (sessions) => {
+    const daysToSessionsMap = {};
+    const results = [];
+
+    // slightly munge fields of sessions and add them to results
+    // any sessions that are shorter than the maximum session
+    // length are grouped by day for processing into abstract sessions
+    for (const s of sessions) {
+        const durMin = Math.round(s.durationSec / 60);
+        const sess = Object.assign({}, s);
+        sess.startDateTime = s.pulseStartTime;
+        delete(sess.pulseStartTime);
+        if (durMin >= maxSessionMinutes) sess['isComplete'] = true;
+        results.push(sess);
+
+        if (durMin < maxSessionMinutes) {
+            const day = dayjs.unix(s.pulseStartTime).tz('America/Los_Angeles').format('YYYYMMDD');
+            const sessionsForDay = daysToSessionsMap[day] || [];
+            sess['durMin'] = durMin;
+            sessionsForDay.push(sess);
+            daysToSessionsMap[day] = sessionsForDay;
+        }
+    };
+
+    // combine incomplete sessions into complete ones
+    for (const daySess of Object.values(daysToSessionsMap)) {
+        if (daySess.length == 1) continue;
+        const ascSess = daySess.toSorted((s1, s2) => s1.durMin - s2.durMin);
+        const completedSessions = maximizeCompleteSessions(0, ascSess, []);
+        for (const s of completedSessions) {
+            let durationSec = 0;
+            let cohSum = 0;
+            let startDateTime = Number.MAX_SAFE_INTEGER;
+            for (let i=0; i<s.length; i++) {
+                if (s[i].startDateTime < startDateTime) startDateTime = s[i].startDateTime;
+                durationSec += s[i].durationSec;
+                cohSum += s[i].weightedAvgCoherence
+            }
+            results.push({startDateTime: startDateTime, durationSec: durationSec, weightedAvgCoherence: cohSum / s.length, isComplete: true, isAbstract: true});
+        }
+    }
+
+    return results.map(r => {delete(r.durMin); return r});
+}
+
+/**
+ * Given a list of sessions sorted sessions by duration (all of which
+ * must be shorter than the maximum session length), combine them such that
+ * we try to maximize the number of complete sessions.
+ * @param {[Object]} sessions 
+ * @returns {[[Object]]} Array of arrays. Each subarray consists of sessions the sum of whose durations is >= the max session length.
+ */
+const maximizeCompleteSessions = (curDur, sessions, results) => {
+    // base case: an empty array
+    if (sessions.length == 0) return results
+
+    // base case: we're at or over 18 minutes
+    if (curDur >= maxSessionMinutes) return results
+
+    const tmp = curDur == 0 ? [] : results.pop();
+
+    const nextSmall = sessions.shift();
+    tmp.push(nextSmall);
+    curDur += nextSmall.durMin;
+    if (sessions.length == 0 && curDur < maxSessionMinutes) {
+        // we've reached the end and aren't going to hit 18
+        return results;
+    }
+    
+    if (curDur >= maxSessionMinutes) {
+        results.push(tmp)
+        return maximizeCompleteSessions(0, sessions, results);
+    }
+
+    const nextLarge = sessions.pop();
+    tmp.push(nextLarge);
+    curDur += nextLarge.durMin;
+    if (sessions.length == 0 && curDur < maxSessionMinutes) {
+        // we've reached the end and aren't going to hit 18
+        return results;
+    }
+
+    results.push(tmp);
+    if (curDur >= maxSessionMinutes) {
+        return maximizeCompleteSessions(0, sessions, results);
+    }
+
+    return maximizeCompleteSessions(curDur, sessions, results);
+}
+
+export const forTesting = { realSessionsToAbstractSessions }
