@@ -106,22 +106,76 @@ describe("quality rewards", () => {
 
     describe("for performance conditions", () => {
         it("should not provide any bonuses for the first session", () => {
-
+            const res = trainingQualityRewards(sqliteMock, 17, null,
+                [{
+                    startDateTime: dayjs().subtract(1, 'day').tz('America/Los_Angeles').unix(), 
+                    weightedAvgCoherence: 2.7
+            }], []);
+            expect(res.length).toBe(0);
         });
 
         it("should provide a 66th percentile bonus if the weighted avg coherence score is in the top 66% of all weighted avg coherence scores and not in the top 25%", () => {
-
+            const priorCoherenceVals = [1,2,3,4,5,6];
+            const sessDate = dayjs().tz('America/Los_Angeles');
+            const sess = buildSession(4, sessDate);
+            const res = trainingQualityRewards(sqliteMock, 7, null, [sess], priorCoherenceVals);
+            expect(res.length).toBe(1);
+            expect(res).toEqual(expect.arrayContaining([{day: sessDate.format(), earnings: earningsTypes.TOP_66}]));
         });
 
         it("should provide a 25th percentile bonus if the weighted avg coherence score is in the top 25% of all weighted avg coherence scores", () => {
-
+            const priorCoherenceVals = [1,2,3,4,5,6];
+            const sessDate = dayjs().tz('America/Los_Angeles');
+            const sess = buildSession(5, sessDate);
+            const res = trainingQualityRewards(sqliteMock, 7, null, [sess], priorCoherenceVals);
+            expect(res.length).toBe(1);
+            expect(res).toEqual(expect.arrayContaining([{day: sessDate.format(), earnings: earningsTypes.TOP_25}]));
         });
 
         it("should provide no bonus if the weighted avg coherence score is not in the top 66% of all weighted avg coherence sccores", () => {
+            const priorCoherenceVals = [1,2,3,4,5,6];
+            const sessDate = dayjs().tz('America/Los_Angeles');
+            const sess = buildSession(1.8, sessDate);
+            const res = trainingQualityRewards(sqliteMock, 7, null, [sess], priorCoherenceVals);
+            expect(res.length).toBe(0);
+        });
 
+        it("should work when there is only one prior coherence value", () => {
+            const sessDate = dayjs().subtract(1, 'day').tz('America/Los_Angeles');
+            const res = trainingQualityRewards(sqliteMock, 9, null,
+                [{
+                    startDateTime: sessDate.unix(), 
+                    weightedAvgCoherence: 2.7
+            }], [2.2]);
+            expect(res.length).toBe(1);
+            expect(res).toEqual(expect.arrayContaining([{day: sessDate.format(), earnings: earningsTypes.TOP_25}]));
+        });
+
+        it("should add weighted avg coherence values to the set of prior coherence values when processing multiple sessions", () => {
+            const priorCoherenceValues = [1,2,3,4,5,6]; // >=3 == 66%, >=5 == 25%   [1,2,3,4,5,5,5,5,6] >=4 == 66%, >=5 == 25%
+            const sessDate = dayjs().tz('America/Los_Angeles').subtract(4, 'days');
+            const sessions = [];
+            const expectedResults = [];
+            for (let i=0; i<4; i++) {
+                // giving the first three sessions a coherence of 5 should push the
+                // 66th percentile above 3 for subsequent sessions
+                const coherence = i>=3 ? 3 : 5;
+                const date = sessDate.add(i, 'days');
+                sessions.push(buildSession(coherence, date));
+                if (i < 3) {
+                    expectedResults.push({day: date.format(), earnings: earningsTypes.TOP_25});
+                }
+            }
+            const res = trainingQualityRewards(sqliteMock, 21, null, sessions, priorCoherenceValues);
+            expect(res.length).toBe(3);
+            expect(res).toEqual(expect.arrayContaining(expectedResults));
         });
     });
 });
+
+function buildSession(sessCoh, sessDate) {
+    return { startDateTime: sessDate.unix(), weightedAvgCoherence: sessCoh };
+}
 
 describe("time rewards", () => {
     const allMock = jest.fn(() => [{}]);

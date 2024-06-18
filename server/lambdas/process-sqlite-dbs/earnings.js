@@ -93,10 +93,10 @@ const trainingTimeEarningsForDay = (minutes, condition) => {
     return res;
 }
 
-export const trainingQualityRewards = (sqliteDB, condition, latestQualityEarnings) => {
+export const trainingQualityRewards = (sqliteDB, condition, latestQualityEarnings, eligibleSessions, priorCoherenceValues) => {
     if (condition < 0 || condition > 63) throw new Error(`Expected condition to be between 0 and 63, but got ${condition}.`);
     if (condition % 2 == 0) return completionQualityRewards(sqliteDB, latestQualityEarnings);
-    return performanceQualityRewards(sqliteDB, sessionData);
+    return performanceQualityRewards(eligibleSessions, priorCoherenceValues);
 }
 
 const completionQualityRewards = (sqliteDb, latestQualityEarnings) => {
@@ -135,16 +135,25 @@ const completionQualityRewards = (sqliteDb, latestQualityEarnings) => {
     return earnings;
 }
 
-const performanceQualityRewards = (sqliteDb, sessionData) => {
-    const latestEligibleSessionTime = sessionData.pulseStartTime;
-    const stmt = sqliteDb.prepare("SELECT emwave_session_id as emWaveSessionId, weighted_avg_coherence as weightedAvgCoherence, pulse_start_time as pulseStartTime, duration_sec as durationSec, emo_pic_name as emoPicName FROM emwave_sessions where pulse_start_time < ?");
-    const res = stmt.all(latestEligibleSessionTime);
-    if (res.length == 0) return null; // no other sessions means this is the first, which isn't eligible for this reward
+const performanceQualityRewards = (eligibleSessions, priorCoherenceValues) => {
+    const earnings = [];
 
-    const sessions = realSessionsToAbstractSessions(res);
+    if (priorCoherenceValues.length == 0) return [];
 
-    // TODO get all existing completed sessions and see if this one is 
-    // in 66th or 25th percentile
+    const comparisonCoherenceValues = priorCoherenceValues.toSorted((a,b) => b - a); // sort descending
+    for (const s of eligibleSessions) {
+        const earnDate = dayjs.unix(s.startDateTime).tz('America/Los_Angeles');
+        const sixSixIdx = Math.ceil(.66 * comparisonCoherenceValues.length) - 1;
+        const twoFiveIdx = Math.ceil(.25 * comparisonCoherenceValues.length) - 1;
+        if (twoFiveIdx < 0 || s.weightedAvgCoherence >= comparisonCoherenceValues[twoFiveIdx]) {
+            earnings.push({day: earnDate.format(), earnings: earningsTypes.TOP_25})
+        } else if (sixSixIdx < 0 || s.weightedAvgCoherence >= comparisonCoherenceValues[sixSixIdx]) {
+            earnings.push({day: earnDate.format(), earnings: earningsTypes.TOP_66});
+        }
+        // add current weightedAvgCoherence to our priors so that it's included in next comparison
+        const insertIdx = comparisonCoherenceValues.findIndex(cv => cv < s.weightedAvgCoherence);
+        comparisonCoherenceValues.splice(insertIdx, 0, s.weightedAvgCoherence);
+    }
 
-    return res;
+    return earnings;
 }
