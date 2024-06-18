@@ -107,7 +107,7 @@ const completionQualityRewards = (sqliteDb, latestQualityEarnings) => {
     const lastStreakDate = dayjs.tz(lastStreakDateStr, 'YYYY-MM-DD', 'America/Los_Angeles');
     const threeDaysAgo = dayjs().tz('America/Los_Angeles').subtract(2, 'days').startOf('day'); // can only earn a streak bonus every three days, including today
     if (lastStreakDate.isSameOrAfter(threeDaysAgo, 'day')) {
-        return null;
+        return [];
     }
 
     const stmt = sqliteDb.prepare(minutesPerDayQuery);

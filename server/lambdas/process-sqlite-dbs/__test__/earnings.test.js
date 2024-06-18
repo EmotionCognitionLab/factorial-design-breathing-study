@@ -57,7 +57,7 @@ describe("quality rewards", () => {
 
             const res = trainingQualityRewards(sqliteMock, 2, latestEarnings);
             expect(sqliteMock.prepare().all).not.toHaveBeenCalled();
-            expect(res).toBeNull();
+            expect(res).toStrictEqual([]);
         });
 
         it(`should not be granted if they have not done at least ${maxSessionMinutes} minutes of training each of the prior three days`, () => {
