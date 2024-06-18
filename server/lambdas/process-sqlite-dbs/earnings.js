@@ -164,21 +164,17 @@ const realSessionsToAbstractSessions = (sessions) => {
     // length are grouped by day for processing into abstract sessions
     for (const s of sessions) {
         const durMin = Math.round(s.durationSec / 60);
-        const sess = {
-            emWaveSessionId: s.emWaveSessionId,
-            startDateTime: s.pulseStartTime,
-            durationSec: s.durationSec,
-            avgCoherence: s.avgCoherence,
-            weightedAvgCoherence: s.weightedAvgCoherence
-        };
+        const sess = Object.assign({}, s);
+        sess.startDateTime = s.pulseStartTime;
+        delete(sess.pulseStartTime);
         if (durMin >= maxSessionMinutes) sess['isComplete'] = true;
-        if (s.emoPicName) sess['emoPicName'] = s.emoPicName;
         results.push(sess);
 
         if (durMin < maxSessionMinutes) {
             const day = dayjs.unix(s.pulseStartTime).tz('America/Los_Angeles').format('YYYYMMDD');
             const sessionsForDay = daysToSessionsMap[day] || [];
-            sessionsForDay.push({ durMin: durMin, startDateTime: s.pulseStartTime, durationSec: s.durationSec, coherence: s.weightedAvgCoherence });
+            sess['durMin'] = durMin;
+            sessionsForDay.push(sess);
             daysToSessionsMap[day] = sessionsForDay;
         }
     };
@@ -195,13 +191,13 @@ const realSessionsToAbstractSessions = (sessions) => {
             for (let i=0; i<s.length; i++) {
                 if (s[i].startDateTime < startDateTime) startDateTime = s[i].startDateTime;
                 durationSec += s[i].durationSec;
-                cohSum += s[i].coherence
+                cohSum += s[i].weightedAvgCoherence
             }
             results.push({startDateTime: startDateTime, durationSec: durationSec, weightedAvgCoherence: cohSum / s.length, isComplete: true, isAbstract: true});
         }
     }
 
-    return results;
+    return results.map(r => {delete(r.durMin); return r});
 }
 
 /**
