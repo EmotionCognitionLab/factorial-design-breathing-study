@@ -150,33 +150,31 @@ const performanceQualityRewards = (sqliteDb, sessionData) => {
 
 /**
  * Given a list of "real" sessions, 
- * returns a list of abstract 18 minute
- * sessions built from the list of real sessions.
- * If a real session starts in one day and ends in 
- * another it is assigned to the day it started.
+ * builds "abstract" complete sessions from them.
+ * Returns the original list of sessions mingled
+ * with the new, abstract sessions.
  * @param {[]} sessions 
  */
 const realSessionsToAbstractSessions = (sessions) => {
     const daysToSessionsMap = {};
     const results = [];
 
-    // separate complete from incomplete sessions
-    // complete sessions are added straight to
-    // the results; incomplete
-    // ones are grouped by day for further processing
+    // slightly munge fields of sessions and add them to results
+    // any sessions that are shorter than the maximum session
+    // length are grouped by day for processing into abstract sessions
     for (const s of sessions) {
         const durMin = Math.round(s.durationSec / 60);
-        if (durMin >= maxSessionMinutes) {
-            const sess = {emWaveSessionId: s.emWaveSessionId, startDateTime: s.pulseStartTime, durationSec: s.durationSec, avgCoherence: s.weightedAvgCoherence, isComplete: true};
-            if (s.emoPicName) sess['emoPicName'] = s.emoPicName;
-            results.push(sess);
-            continue;
-        }
+        const sess = {emWaveSessionId: s.emWaveSessionId, startDateTime: s.pulseStartTime, durationSec: s.durationSec, avgCoherence: s.weightedAvgCoherence};
+        if (durMin >= maxSessionMinutes) sess['isComplete'] = true;
+        if (s.emoPicName) sess['emoPicName'] = s.emoPicName;
+        results.push(sess);
 
-        const day = dayjs.unix(s.pulseStartTime).tz('America/Los_Angeles').format('YYYYMMDD');
-        const sessionsForDay = daysToSessionsMap[day] || [];
-        sessionsForDay.push({ durMin: durMin, startDateTime: s.pulseStartTime, durationSec: s.durationSec, coherence: s.weightedAvgCoherence });
-        daysToSessionsMap[day] = sessionsForDay;
+        if (durMin < maxSessionMinutes) {
+            const day = dayjs.unix(s.pulseStartTime).tz('America/Los_Angeles').format('YYYYMMDD');
+            const sessionsForDay = daysToSessionsMap[day] || [];
+            sessionsForDay.push({ durMin: durMin, startDateTime: s.pulseStartTime, durationSec: s.durationSec, coherence: s.weightedAvgCoherence });
+            daysToSessionsMap[day] = sessionsForDay;
+        }
     };
 
     // combine incomplete sessions into complete ones
