@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "better-sqlite3": "^9.4.0",
-    "db": "file:../../../common/db"
+    "db": "file:../../../common/db",
+    "lodash": "^4.17.21"
   }
 }

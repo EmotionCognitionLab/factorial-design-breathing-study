@@ -4,12 +4,68 @@ import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { QueryCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb'
 import { s3Client as s3 , dynamoDocClient as docClient } from '../common/aws-clients';
 import { totalStage3Segments } from '../../../common/types/types.js';
+import { trainingTimeRewards } from './earnings.js';
 import Db from 'db/db.js';
 import Database from 'better-sqlite3';
 import { mkdtemp, rm, writeFile } from 'fs/promises';
+import { camelCase, zipObject } from 'lodash'
 const path = require('path');
 
 const sessionsTable = process.env.SESSIONS_TABLE;
+
+export async function handler(event) {
+    let dbPath;
+    try {
+        const record = event.Records[0]; // s3 record
+        dbPath = await downloadSqliteDb(record);
+        const sqliteDb = new Database(dbPath);
+
+        // process earnings
+        const userId = decodeURIComponent(event.Records[0].s3.bucket.name).split('/')[0];
+        
+        const timeRewards = trainingTimeRewards(sqliteDb, condition, latestTimeEarnings);
+
+         // get new sessions from sqlite db
+         const lastUploadTime = await lastUploadedSessionTime(userId);
+         const stmt = sqliteDb.prepare('select * from emwave_sessions where pulse_start_time > ? and stage= 2;');
+         const res = stmt.all(lastUploadTime).map(rowToObject);
+
+        // import sessions
+
+
+    } finally {
+        if (dbPath){
+            await rm(dbPath);
+        }
+    }
+
+    
+    
+}
+
+const downloadSqliteDb = async (record) => {
+    // Retrieve the database
+    const getObjCmdInput = {
+        Bucket: record.s3.bucket.name,
+        Key: decodeURIComponent(record.s3.object.key),
+    };
+   
+    try {
+        // retrieve sqlite file from s3
+        const getObjCmd = new GetObjectCommand(getObjCmdInput);
+        const tmpDir = await mkdtemp('/tmp/');
+        const dbPath = path.join(tmpDir, 'temp.sqlite');
+        const data = await s3.send(getObjCmd);
+        await writeFile(dbPath, data.Body);
+        return dbPath;
+    } catch (err) {
+        console.error(`Error trying to download sqlite db (s3 key: ${getObjCmdInput.Key}).`);
+        console.error(err, err.stack);
+        return {status: "error", message: err.message}
+    }
+
+    
+}
 
 export async function savesessions(event) {
     const record = event.Records[0];
@@ -31,7 +87,7 @@ export async function savesessions(event) {
 
         // check to see which segments we need from it
         const userId = getObjCmdInput.Key.split('/')[0];
-        const lastUploadTime = await lastUploadedSegmentTime(userId, false);
+        const lastUploadTime = await lastUploadedSessionTime(userId, false);
 
         // get those segments from the sqlite db
         db = new Database(dbPath);
@@ -42,7 +98,7 @@ export async function savesessions(event) {
         await writeSegments(userId, res, false);
 
         // repeat for rest segments
-        const lastRestUploadTime = await lastUploadedSegmentTime(userId, true);
+        const lastRestUploadTime = await lastUploadedSessionTime(userId, true);
 
         // get those segments from the sqlite db
         const restStmt = db.prepare('select * from rest_segments where end_date_time > ?;');
@@ -79,19 +135,18 @@ export async function savesessions(event) {
     }
 }
 
-async function lastUploadedSegmentTime(userId, isRest) {
+async function lastUploadedSessionTime(userId) {
     const baseParams = new QueryCommand({
         TableName: sessionsTable,
         KeyConditionExpression: "userId = :userId",
-        FilterExpression: "isRest = :ir",
         ScanIndexForward: false,
         Limit: 1,
-        ExpressionAttributeValues: { ":userId": userId, ":ir": isRest },
+        ExpressionAttributeValues: { ":userId": userId },
     });
     const dynResults = await docClient.send(baseParams);
     if (dynResults.Items.length === 0) return 0;
   
-    return dynResults.Items[0].endDateTime;
+    return dynResults.Items[0].startDateTime;
 }
 
 async function writeSegments(userId, rows, isRest) {
@@ -121,4 +176,10 @@ async function writeSegments(userId, rows, isRest) {
         params['RequestItems'][sessionsTable] = chunk;
         await docClient.send(new BatchWriteCommand(params));
     }
+}
+
+const rowToObject = (result) => {
+    const rowProps = Object.keys(result).map(camelCase);
+    const rowVals = Object.values(result);
+    return zipObject(rowProps, rowVals);
 }

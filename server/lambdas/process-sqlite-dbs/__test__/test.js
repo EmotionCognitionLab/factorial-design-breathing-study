@@ -111,7 +111,7 @@ async function runS3PutLambda() {
     const result = await lambdaLocal.execute({
         event: putEvent,
         lambdaPath: path.join(__dirname, '../process-sqlite-dbs.js'),
-        lambdaHandler: 'savesegments',
+        lambdaHandler: 'handler',
         verboseLevel: 0
     });
     return result;
@@ -134,7 +134,7 @@ async function confirmResults(db, userId, lastUploadTime, isRest) {
 
 async function initSqliteDb() {
     const dbDir = await mkdtemp(os.tmpdir());
-    sqliteTestDbPath = path.join(dbDir, 'TestHeartBEAM.sqlite');
+    sqliteTestDbPath = path.join(dbDir, 'TestFDS.sqlite');
     const db = new Database(sqliteTestDbPath);
 
     const createSegmentTableStmt = db.prepare('CREATE TABLE IF NOT EXISTS segments(id INTEGER PRIMARY KEY, session_start_time INTEGER NOT NULL, end_date_time INTEGER NOT NULL, avg_coherence FLOAT, stage INTEGER NOT NULL)');
