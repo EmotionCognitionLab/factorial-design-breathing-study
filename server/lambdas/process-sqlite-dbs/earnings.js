@@ -56,13 +56,15 @@ export const trainingTimeRewards = (sqliteDb, condition, latestTimeEarnings) => 
         if (startDay.isSameOrAfter(earningsDay, 'day')) { // shouldn't happen, but double-check
             // make sure we don't double-pay anything
             if (latestTimeEarnings?.type == earningsTypes.COMPLETION_BREATH2 || latestTimeEarnings?.type == earningsTypes.PERFORMANCE_BREATH2) {
-                earningsForDay = null;
+                earningsForDay = [];
             }
             if (latestTimeEarnings?.type == earningsTypes.BREATH1) {
                 earningsForDay = earningsForDay.filter(e => e !== earningsTypes.BREATH1)
             }
         }
-        if (earningsForDay) newEarnings.push({day: earningsDay.format(), earnings: earningsForDay});
+        for (const earningsType of earningsForDay) {
+            newEarnings.push({day: earningsDay.format(), earnings: earningsType})
+        }
         
     }
 
@@ -127,7 +129,7 @@ const completionQualityRewards = (sqliteDb, latestQualityEarnings) => {
             minutesByDay[i].minutes >= maxSessionMinutes && 
             minutesByDay[i+1].minutes >= maxSessionMinutes)
         {
-            earnings.push({day: nextDay.format(), earnings: [earningsTypes.STREAK_BONUS]})
+            earnings.push({day: nextDay.format(), earnings: earningsTypes.STREAK_BONUS})
         } else {
             continue;
         }

@@ -95,7 +95,7 @@ describe("quality rewards", () => {
             expect(allMock.mock.calls[0][0]).toBe(lastStreakDate.add(1, 'day').unix());
             expect(res).toStrictEqual([{
                 day: dayjs.tz(dbResults[2].day, 'YYYY-MM-DD', 'America/Los_Angeles').format(), 
-                earnings: [earningsTypes.STREAK_BONUS]
+                earnings: earningsTypes.STREAK_BONUS
             }]);
         });
 
@@ -219,7 +219,7 @@ describe("time rewards", () => {
         const today = dayjs().subtract(1, 'hour').tz('America/Los_Angeles');
         const res = testSecondSessionReward(today, 26);
         expect(allMock).toHaveBeenCalledTimes(1);
-        expect(res).toEqual(expect.arrayContaining([{ day: today.startOf('day').format(), earnings: [ earningsTypes.COMPLETION_BREATH2 ] }]));
+        expect(res).toEqual(expect.arrayContaining([{ day: today.startOf('day').format(), earnings: earningsTypes.COMPLETION_BREATH2 }]));
         expect(allMock.mock.calls[0][0]).toEqual(today.unix());
     });
 
@@ -259,13 +259,19 @@ describe("time rewards", () => {
         expect(allMock).toHaveBeenCalledTimes(1);
         expect(res).toEqual(expect.arrayContaining([
             {
-                day: formatDate('2024-03-09'), earnings: [earningsTypes.BREATH1, earningsTypes.PERFORMANCE_BREATH2]
+                day: formatDate('2024-03-09'), earnings: earningsTypes.BREATH1
             },
             {
-                day: formatDate('2024-03-11'), earnings: [earningsTypes.BREATH1]
+                day: formatDate('2024-03-09'), earnings: earningsTypes.PERFORMANCE_BREATH2
             },
             {
-                day: formatDate('2024-03-12'), earnings: [earningsTypes.BREATH1, earningsTypes.PERFORMANCE_BREATH2]
+                day: formatDate('2024-03-11'), earnings: earningsTypes.BREATH1
+            },
+            {
+                day: formatDate('2024-03-12'), earnings: earningsTypes.BREATH1
+            },
+            {
+                day: formatDate('2024-03-12'), earnings: earningsTypes.PERFORMANCE_BREATH2
             },
         ]));
         expect(allMock.mock.calls[0][0]).toEqual(dayjs('1970-01-01 00:00').tz('America/Los_Angeles').unix());
@@ -276,7 +282,7 @@ describe("time rewards", () => {
             const today = dayjs().subtract(1, 'hour').tz('America/Los_Angeles');
             const res = testSecondSessionReward(today, 26);
             expect(allMock).toHaveBeenCalledTimes(1);
-            expect(res).toEqual(expect.arrayContaining([{ day: today.startOf('day').format(), earnings: [ earningsTypes.COMPLETION_BREATH2 ] }]));
+            expect(res).toEqual(expect.arrayContaining([{ day: today.startOf('day').format(), earnings: earningsTypes.COMPLETION_BREATH2 }]));
             expect(allMock.mock.calls[0][0]).toEqual(today.unix());
         });
     });
@@ -286,7 +292,7 @@ describe("time rewards", () => {
             const today = dayjs().subtract(1, 'hour').tz('America/Los_Angeles');
             const res = testSecondSessionReward(today, 17);
             expect(allMock).toHaveBeenCalledTimes(1);
-            expect(res).toEqual(expect.arrayContaining([{ day: today.startOf('day').format(), earnings: [ earningsTypes.PERFORMANCE_BREATH2 ] }]));
+            expect(res).toEqual(expect.arrayContaining([{ day: today.startOf('day').format(), earnings: earningsTypes.PERFORMANCE_BREATH2 }]));
             expect(allMock.mock.calls[0][0]).toEqual(today.unix());
         });
     });
