@@ -253,8 +253,7 @@ const realSessionsToAbstractSessions = (sessions) => {
     // combine incomplete sessions into complete ones
     for (const daySess of Object.values(daysToSessionsMap)) {
         if (daySess.length == 1) continue;
-        const ascSess = daySess.toSorted((s1, s2) => s1.durMin - s2.durMin);
-        const completedSessions = maximizeCompleteSessions(0, ascSess, []);
+        const completedSessions = maximizeCompleteSessions(0, daySess, []);
         for (const s of completedSessions) {
             let durationSec = 0;
             let cohSum = 0;
@@ -287,28 +286,31 @@ const maximizeCompleteSessions = (curDur, sessions, results) => {
 
     const tmp = curDur == 0 ? [] : results.pop();
 
-    const nextSmall = sessions.shift();
-    tmp.push(nextSmall);
-    curDur += nextSmall.durMin;
+    // figure out how many minutes we need to make a complete session
+    const targetDur = maxSessionMinutes - curDur;
+
+    // find the session entry closest to our target
+    const differences = sessions.map(s => Math.abs(targetDur - s.durMin));
+    let minDiffIdx = -1;
+    differences.reduce((prev, cur, idx) => {
+        if (cur < prev) {
+            minDiffIdx = idx;
+            return cur;
+        }
+        return prev;
+    }, Number.MAX_SAFE_INTEGER);
+
+    const next = sessions.splice(minDiffIdx, 1)[0];
+
+    tmp.push(next);
+    curDur += next.durMin;
+
     if (sessions.length == 0 && curDur < maxSessionMinutes) {
         // we've reached the end and aren't going to hit 18
         return results;
     }
     
-    if (curDur >= maxSessionMinutes) {
-        results.push(tmp)
-        return maximizeCompleteSessions(0, sessions, results);
-    }
-
-    const nextLarge = sessions.pop();
-    tmp.push(nextLarge);
-    curDur += nextLarge.durMin;
-    if (sessions.length == 0 && curDur < maxSessionMinutes) {
-        // we've reached the end and aren't going to hit 18
-        return results;
-    }
-
-    results.push(tmp);
+    results.push(tmp)
     if (curDur >= maxSessionMinutes) {
         return maximizeCompleteSessions(0, sessions, results);
     }
