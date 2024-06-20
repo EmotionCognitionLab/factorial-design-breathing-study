@@ -101,7 +101,7 @@ describe("Processing a sqlite file", () => {
 
     it("should only save sessions newer than the last uploaded session", async () => {
         const lastSessionTime = dayjs().subtract(1, 'day');
-        const dynamoSessions = [{ emwave_session_id: 'cafe451', avg_coherence: 2.3, startDateTime: lastSessionTime.unix(), valid_status: 1, duration_seconds: maxSessionMinutes*60, stage: 2, weighted_avg_coherence: 2.3 }];
+        const dynamoSessions = [{ emWaveSessionId: 'cafe451', avgCoherence: 2.3, startDateTime: lastSessionTime.unix(), validStatus: 1, durationSeconds: maxSessionMinutes*60, stage: 2, weightedAvgCoherence: 2.3 }];
         await insertDynamoSessions(theUserId, dynamoSessions);
 
         const sessions = [
@@ -155,6 +155,33 @@ describe("Processing a sqlite file", () => {
         const addedSessions = await getDynamoSessions(theUserId);
         expect(addedSessions.length).toBe(sessions.length);
         expect(addedSessions.some(s => s.emWaveSessionId === sessions[0].emwave_session_id && s.isComplete)).toBe(true);
+    });
+
+    it("should include prior coherence values when calculating performance rewards", async () => {
+        const lastSessionTime = dayjs().subtract(4, 'days');
+        const dynamoSessions = [];
+        for (let i=0; i<4; i++) {
+            const startTime = lastSessionTime.add(i, 'days');
+            const weightedCoh = i == 3 ? 7 : 3;
+            dynamoSessions.push({emWaveSessionId: `cafe45${i}`, avgCoherence: 2.3, startDateTime: startTime.unix(), validStatus: 1, durationSeconds: maxSessionMinutes*60, stage: 2, weightedAvgCoherence: weightedCoh, isComplete: true})
+        }
+        await insertDynamoSessions(theUserId, dynamoSessions);
+
+        const sessTime = lastSessionTime.add(4, 'days').tz('America/Los_Angeles');
+         // with a weighted_avg_coherence of 5, this should score in the top 66% but not the top 25%
+        // of prior sessions given the test data created above
+        const sessions = [
+            { emwave_session_id: 'abcf789', avg_coherence: 2.3, pulse_start_time: sessTime.unix(), valid_status: 1, duration_seconds: maxSessionMinutes*60, stage: 2, weighted_avg_coherence: 5 },
+        ];
+        mockGetUser.mockReturnValueOnce({userId: theUserId, condition: 3}); // make sure we use a performance condition
+        await runLambdaTestWithSessions(db, sessions);
+
+        const addedEarnings = await getDynamoEarnings(theUserId);
+        expect(addedEarnings.length).toBe(sessions.length + 1); // they should get one time and one quality reward
+        expect(addedEarnings).toEqual(expect.arrayContaining([
+            {userId: theUserId, amount: earningsAmounts[earningsTypes.BREATH1], dateType: `${sessTime.startOf('day').format()}|${earningsTypes.BREATH1}`},
+            {userId: theUserId, amount: earningsAmounts[earningsTypes.TOP_66], dateType: `${sessTime.format()}|${earningsTypes.TOP_66}`}
+        ]));
     });
 
     afterAll(async () => {

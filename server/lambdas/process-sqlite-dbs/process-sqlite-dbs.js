@@ -113,7 +113,7 @@ const downloadSqliteDb = async (record) => {
 async function getPriorCoherenceValues(userId, latestStartDateTime) {
     const params = {
         TableName: sessionsTable,
-        KeyConditionExpression: 'userId = :uid and startDateTime < :latest',
+        KeyConditionExpression: 'userId = :uid and startDateTime <= :latest',
         FilterExpression: 'stage = :stage and isComplete = :true',
         ExpressionAttributeValues: {
             ':uid': userId,
