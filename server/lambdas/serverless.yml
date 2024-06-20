@@ -68,6 +68,7 @@ functions:
     environment:
       S3_ENDPOINT: "https://s3.us-west-2.amazonaws.com"
       SESSIONS_TABLE: ${ssm:/${self:service}/${self:provider.stage}/info/dynamo/table/sessions}
+      EARNINGS_TABLE: ${ssm:/${self:service}/${self:provider.stage}/info/dynamo/table/earnings}
     layers:
       - !Ref BetterSqlite3LambdaLayer
     role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/sqlite/process}
