@@ -354,7 +354,10 @@ resource "aws_iam_role" "lambda-sqlite-process" {
   managed_policy_arns = [
     aws_iam_policy.cloudwatch-write.arn,
     aws_iam_policy.dynamodb-read-all-sessions.arn,
-    aws_iam_policy.dynamodb-write-all-sessions.arn
+    aws_iam_policy.dynamodb-write-all-sessions.arn,
+    aws_iam_policy.dynamodb-earnings-read.arn,
+    aws_iam_policy.dynamodb-earnings-write.arn,
+    aws_iam_policy.dynamodb-user-read.arn
   ]
 }
 
@@ -476,42 +479,6 @@ resource "aws_ssm_parameter" "lambda-role" {
   description = "ARN for lambda role"
   type = "SecureString"
   value = "${aws_iam_role.lambda.arn}"
-}
-
-resource "aws_iam_role" "lambda-earnings" {
-  name = "${var.project}-${var.env}-lambda-earnings"
-  path = "/role/lambda/earnings/"
-  description = "Role for lambda functions that handle earnings"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-        Action =  [
-          "sts:AssumeRole"
-        ]
-      }
-    ]
-  })
-
-  managed_policy_arns   = [
-    aws_iam_policy.dynamodb-user-read.arn,
-    aws_iam_policy.dynamodb-read-all-sessions.arn,
-    aws_iam_policy.dynamodb-earnings-read.arn,
-    aws_iam_policy.dynamodb-earnings-write.arn,
-    aws_iam_policy.cloudwatch-write.arn
-  ]
-}
-
-# save above IAM role to SSM so serverless can reference it
-resource "aws_ssm_parameter" "lambda-earnings-role" {
-  name = "/${var.project}/${var.env}/role/lambda/earnings"
-  description = "ARN for lambda-earnings role"
-  type = "SecureString"
-  value = "${aws_iam_role.lambda-earnings.arn}"
 }
 
 # Policy for unregistered users for registration
