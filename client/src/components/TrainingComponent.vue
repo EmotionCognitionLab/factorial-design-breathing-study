@@ -104,6 +104,11 @@ function buildChartConfig() {
                     radius: 0
                 }
             },
+            plugins: {
+                legend: {
+                    onClick: (e) => {}
+                }
+            },
             scales: {
                 x: {
                     type: 'realtime',
