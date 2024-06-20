@@ -26,15 +26,15 @@ HRV_main <- function(ibi_data) {
   #put freq and spec to x and y, respectively
   x <- hrv.data[["FreqAnalysis"]][[1]][["periodogram"]][["freq"]]
   y <- hrv.data[["FreqAnalysis"]][[1]][["periodogram"]][["spec"]]
-  #make a subset1 of x and y where x is between 0.059 and 0.069
+  #make a subset1 of x and y where x is between 0.058 and 0.068
   xy <- data.frame(x,y)
   peaklist <- findpeaks(xy$y)
   
   #peakXY should be the subset of index is peaklist[,2]
   peakXY <- xy[peaklist[,2],]
   
-  #make a subset1 of peaklist where the first column is between 0.059 and 0.069
-  subset1 <- subset(peakXY, peakXY$x >= 0.059 & peakXY$x <= 0.069)
+  #make a subset1 of peaklist where the first column is between 0.058 and 0.068
+  subset1 <- subset(peakXY, peakXY$x >= 0.058 & peakXY$x <= 0.068)
   #find a largest 2nd column value in the subset1
   slowerY <- max(subset1[,2])
   #if the slowerY == -Inf, slowerX is NA, else, find a first column value of slowerY
