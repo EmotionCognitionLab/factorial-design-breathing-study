@@ -56,7 +56,7 @@ functions:
           method: post
     timeout: 30
   process-sqlite-dbs:
-    handler: process-sqlite-dbs/process-sqlite-dbs.savesessions
+    handler: process-sqlite-dbs/process-sqlite-dbs.handler
     events:
       - s3:
           bucket: ${self:service}-${self:provider.stage}-usr-data
@@ -174,21 +174,6 @@ functions:
     package:
       patterns:
         - 'reminders/*.js'
-
-  earnings:
-    handler: earnings/earnings.handler
-    events:
-      - schedule:
-          name: "${self:service}-${self:provider.stage}-2AM-earnings-calculation"
-          rate: cron(0 10 * * ? *)
-    timeout: 30
-    environment:
-      DYNAMO_ENDPOINT: "https://dynamodb.${self:provider.region}.amazonaws.com"
-      REGION: ${self:provider.region}
-    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/earnings}
-    package:
-      patterns:
-        - 'earnings/*.js'
 
   register:
     handler: register/register.signUp
