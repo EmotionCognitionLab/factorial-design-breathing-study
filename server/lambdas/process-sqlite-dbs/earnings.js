@@ -15,8 +15,18 @@ import { earningsTypes, maxSessionMinutes } from '../../../common/types/types.js
 const db = new Db();
 db.docClient = docClient;
 
-const minutesPerDayQuery = "SELECT strftime('%Y-%m-%d', pulse_start_time, 'unixepoch', 'localtime') AS day, sum(duration_seconds)/60 AS minutes FROM emwave_sessions WHERE stage=2 AND pulse_start_time > ? GROUP BY day ORDER BY day asc";
+const minutesPerDay = (sqliteDb, startTime) => {
+    const stmt = sqliteDb.prepare('select pulse_start_time, duration_seconds from emwave_sessions where stage = 2 and pulse_start_time > ?');
+    const results = stmt.all(startTime);
+    const minutesByDay = {};
+    for (const r of results) {
+        const day = dayjs.unix(r.pulse_start_time).tz('America/Los_Angeles').format('YYYY-MM-DD');
+        const minutes = minutesByDay[day] || 0;
+        minutesByDay[day] = minutes + Math.round(r.duration_seconds / 60);
+    }
 
+    return Object.keys(minutesByDay).sort((a, b) => a - b).map(day => ({day: day, minutes: minutesByDay[day]}));
+}
 
 // A "session" is 18 minutes long, but may
 // be broken up across multiple actual sessions.
@@ -41,14 +51,13 @@ export const trainingTimeRewards = (sqliteDb, condition, latestTimeEarnings) => 
         startDay = dayjs('1970-01-01 00:00').tz('America/Los_Angeles');
     } else if (latestTimeEarnings.type == earningsTypes.BREATH1) {
         // they can still earn a *_BREATH2 reward for this day
-        startDay = dayjs(latestTimeEarnings.date);
+        startDay = dayjs(latestTimeEarnings.date).tz('America/Los_Angeles').startOf('day');
     } else {
         // there's no other time-based reward for this day - move to the next one
-        startDay = dayjs(latestTimeEarnings.date).add(1, 'day');
+        startDay = dayjs(latestTimeEarnings.date).tz('America/Los_Angeles').endOf('day').add(1, 'second');
     }
 
-    const stmt = sqliteDb.prepare(minutesPerDayQuery);
-    const results = stmt.all(startDay.unix());
+    const results = minutesPerDay(sqliteDb, startDay.unix());
     const newEarnings = []
     for (const res of results) {
         let earningsForDay = trainingTimeEarningsForDay(res.minutes, condition);
@@ -113,9 +122,8 @@ const completionQualityRewards = (sqliteDb, latestQualityEarnings) => {
         return [];
     }
 
-    const stmt = sqliteDb.prepare(minutesPerDayQuery);
     const startDate = lastStreakDate.add(1, 'day');
-    const minutesByDay = stmt.all(startDate.unix());
+    const minutesByDay = minutesPerDay(sqliteDb, startDate.unix());
     if (minutesByDay.length < 3) return [];
 
     const earnings = [];
