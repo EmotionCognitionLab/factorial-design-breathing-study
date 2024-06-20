@@ -27,7 +27,7 @@
     "babel-jest": "^29.7.0",
     "imports-loader": "^3.1.1",
     "jest": "^29.7.0",
-    "lambda-local": "^1.7.4",
+    "lambda-local": "^2.2.0",
     "serverless": "^3.32.2",
     "serverless-better-credentials": "^2.0.0",
     "serverless-ssm-publish": "^1.4.1",
