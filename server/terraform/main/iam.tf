@@ -274,7 +274,7 @@ resource "aws_iam_policy" "dynamodb-earnings-write" {
     {
       "Effect": "Allow",
       "Action": [
-        "dynamodb:UpdateItem"
+        "dynamodb:BatchWriteItem"
       ],
       "Resource": [
         "arn:aws:dynamodb:${var.region}:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.earnings-table.name}"
