@@ -1,5 +1,5 @@
 {
-  "name": "lipbelly",
+  "name": "fds",
   "version": "1.0.0",
   "description": "Home for modules (e.g. aws-sdk) shared across multiple lambda functions",
   "main": "index.js",
