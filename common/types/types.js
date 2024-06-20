@@ -9,13 +9,11 @@ export const earningsTypes = Object.freeze({
 
 export const earningsAmounts = Object.freeze({
     [earningsTypes.STREAK_BONUS]: 5,
-    [earningsTypes.BREATH1]: 3,
-    [earningsTypes.COMPLETION_BREATH2]: 7,
-    [earningsTypes.PERFORMANCE_BREATH2]: 3,
+    [earningsTypes.BREATH1]: 4,
+    [earningsTypes.COMPLETION_BREATH2]: 8,
+    [earningsTypes.PERFORMANCE_BREATH2]: 4,
     [earningsTypes.TOP_66]: 3,
     [earningsTypes.TOP_25]: 4
 });
 
 export const maxSessionMinutes = 18;
-
-export const totalStage3Segments = 48;
