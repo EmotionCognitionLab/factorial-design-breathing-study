@@ -6,7 +6,7 @@
  import { fromCognitoIdentityPool } from '@aws-sdk/credential-providers';
  import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
  import { DynamoDBDocumentClient, ScanCommand, QueryCommand, UpdateCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
- import { Logger } from "logger";
+ import Logger from "logger";
  import { getAuth } from "../auth/auth.js";
  import { earningsAmounts } from "../types/types.js";
  
