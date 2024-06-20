@@ -3,8 +3,8 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { QueryCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb'
 import { s3Client as s3 , dynamoDocClient as docClient } from '../common/aws-clients';
-import { totalStage3Segments, maxSessionMinutes } from '../../../common/types/types.js';
-import { trainingTimeRewards } from './earnings.js';
+import { maxSessionMinutes, earningsTypes, earningsAmounts } from '../../../common/types/types.js';
+import { trainingQualityRewards, trainingTimeRewards } from './earnings.js';
 import Db from 'db/db.js';
 import Database from 'better-sqlite3';
 import { mkdtemp, rm, writeFile } from 'fs/promises';
@@ -20,36 +20,78 @@ dayjs.extend(timezone);
 dayjs.extend(customParseFormat);
 dayjs.extend(isSameOrAfter);
 
+const db = new Db();
+db.docClient = docClient;
 const sessionsTable = process.env.SESSIONS_TABLE;
+const earningsTable = process.env.EARNINGS_TABLE;
 
 export async function handler(event) {
-    let dbPath;
+    let sqliteDbPath;
+    let sqliteDb;
+
     try {
         const record = event.Records[0]; // s3 record
-        dbPath = await downloadSqliteDb(record);
-        const sqliteDb = new Database(dbPath);
+        sqliteDbPath = await downloadSqliteDb(record);
+        sqliteDb = new Database(sqliteDbPath);
+        const userId = decodeURIComponent(event.Records[0].s3.object.key).split('/')[0];
 
-        // process earnings
-        const userId = decodeURIComponent(event.Records[0].s3.bucket.name).split('/')[0];
-        
-        const timeRewards = trainingTimeRewards(sqliteDb, condition, latestTimeEarnings);
+        // get new sessions from sqlite db
+        const lastUploadTime = await lastUploadedSessionTime(userId);
+        const newSessionsStmt = sqliteDb.prepare('select * from emwave_sessions where pulse_start_time > ?');
+        const newSessions = newSessionsStmt.all(lastUploadTime).map(rowToObject);
 
-         // get new sessions from sqlite db
-         const lastUploadTime = await lastUploadedSessionTime(userId);
-         const stmt = sqliteDb.prepare('select * from emwave_sessions where pulse_start_time > ? and stage= 2;');
-         const res = stmt.all(lastUploadTime).map(rowToObject);
+        // get user and earnings info
+        const user = await db.getUser(userId);
+        const prevEarnings = await db.earningsForUser(userId);
 
-        // import sessions
+        // get quality-based earnings
+        const earningsEligible = newSessions.filter(sess => sess.stage === 2);
+        const abstractSessions = realSessionsToAbstractSessions(earningsEligible);
+        const priorCoherenceValues = await getPriorCoherenceValues(userId, lastUploadTime);
 
+        // earnings are sorted by ascending date, so last is most recent
+        const lastQualityEarning = prevEarnings.findLast(e => 
+            e.type === earningsTypes.STREAK_BONUS ||
+            e.type === earningsTypes.TOP_25 ||
+            e.type === earningsTypes.TOP_66
+        );
+        const qualityRewards = trainingQualityRewards(sqliteDb, user.condition, lastQualityEarning, abstractSessions, priorCoherenceValues);
 
+        // get time-based earnings
+        const lastTimeEarning = prevEarnings.findLast(e => 
+            e.type === earningsTypes.BREATH1 ||
+            e.type === earningsTypes.COMPLETION_BREATH2 ||
+            e.type === earningsTypes.PERFORMANCE_BREATH2
+        );
+        const timeRewards = trainingTimeRewards(sqliteDb, user.condition, lastTimeEarning);
+
+        //save earnings and sessions
+        const allEarnings = [...qualityRewards, ...timeRewards];
+        const nonEarningSessions = newSessions.filter(s => s.stage != 2);
+        for (const s of nonEarningSessions) {
+            if (s.pulseStartTime) {
+                s.startDateTime = s.pulseStartTime;
+                delete(s.pulseStartTime);
+            }
+        }
+        const allSessions = [...nonEarningSessions, ...abstractSessions];
+        const recordNoun = allEarnings.length == 1 ? 'record' : 'records';
+        const sessionNoun = allSessions.length == 1 ? 'session' : 'sessions';
+        console.log(`About to save ${allEarnings.length} earnings ${recordNoun} and ${allSessions.length} ${sessionNoun} for user ${userId}.`);
+        await saveSessionsAndEarnings(userId, allSessions, allEarnings);
+        console.log(`Finished saving earnings and sessions.`);
+    } catch (err) {
+        console.error(err);
+        return {status: 'error', message: err.message};
     } finally {
-        if (dbPath){
-            await rm(dbPath);
+        if (sqliteDb) {
+            sqliteDb.close();
+        }
+        if (sqliteDbPath){
+            await rm(sqliteDbPath);
         }
     }
-
-    
-    
+    return {status: 'success'};
 }
 
 const downloadSqliteDb = async (record) => {
@@ -59,88 +101,100 @@ const downloadSqliteDb = async (record) => {
         Key: decodeURIComponent(record.s3.object.key),
     };
    
-    try {
-        // retrieve sqlite file from s3
-        const getObjCmd = new GetObjectCommand(getObjCmdInput);
-        const tmpDir = await mkdtemp('/tmp/');
-        const dbPath = path.join(tmpDir, 'temp.sqlite');
-        const data = await s3.send(getObjCmd);
-        await writeFile(dbPath, data.Body);
-        return dbPath;
-    } catch (err) {
-        console.error(`Error trying to download sqlite db (s3 key: ${getObjCmdInput.Key}).`);
-        console.error(err, err.stack);
-        return {status: "error", message: err.message}
-    }
-
-    
+    // retrieve sqlite file from s3
+    const getObjCmd = new GetObjectCommand(getObjCmdInput);
+    const tmpDir = await mkdtemp('/tmp/');
+    const dbPath = path.join(tmpDir, 'temp.sqlite');
+    const data = await s3.send(getObjCmd);
+    await writeFile(dbPath, data.Body);
+    return dbPath;
 }
 
-export async function savesessions(event) {
-    const record = event.Records[0];
-    // Retrieve the database
-    const getObjCmdInput = {
-        Bucket: record.s3.bucket.name,
-        Key: decodeURIComponent(record.s3.object.key),
+async function getPriorCoherenceValues(userId, latestStartDateTime) {
+    const params = {
+        TableName: sessionsTable,
+        KeyConditionExpression: 'userId = :uid and startDateTime < :latest',
+        FilterExpression: 'stage = :stage and isComplete = :true',
+        ExpressionAttributeValues: {
+            ':uid': userId,
+            ':latest': latestStartDateTime,
+            ':stage': 2,
+            ':true': true
+        },
+        ProjectionExpression: 'weightedAvgCoherence'
     };
-    const getObjCmd = new GetObjectCommand(getObjCmdInput);
-    let tmpDir;
-    let db;
-  
-    try {
-        // retrieve sqlite file from s3
-        tmpDir = await mkdtemp('/tmp/');
-        const dbPath = path.join(tmpDir, 'temp.sqlite');
-        const data = await s3.send(getObjCmd);
-        await writeFile(dbPath, data.Body);
+    const res = await docClient.send(new QueryCommand(params));
+    return res.Items.map(i => i.weightedAvgCoherence);
+}
 
-        // check to see which segments we need from it
-        const userId = getObjCmdInput.Key.split('/')[0];
-        const lastUploadTime = await lastUploadedSessionTime(userId, false);
-
-        // get those segments from the sqlite db
-        db = new Database(dbPath);
-        const stmt = db.prepare('select * from segments where end_date_time > ?;');
-        const res = stmt.all(lastUploadTime);
-
-        // write them to the segments table in dynamoDb
-        await writeSegments(userId, res, false);
-
-        // repeat for rest segments
-        const lastRestUploadTime = await lastUploadedSessionTime(userId, true);
-
-        // get those segments from the sqlite db
-        const restStmt = db.prepare('select * from rest_segments where end_date_time > ?;');
-        const restRes = restStmt.all(lastRestUploadTime);
-
-        // write them to the segments table in dynamoDb
-        await writeSegments(userId, restRes, true);
-
-        // check to see if they have completed stage 3
-        const stage3Stmt = db.prepare('select count(*) from segments where stage = 3;');
-        const stage3Res = stage3Stmt.get()["count(*)"];
-        if (stage3Res >= totalStage3Segments) {
-            const dynamoDb = new Db();
-            dynamoDb.docClient = docClient;
-            await dynamoDb.updateUser(userId, {progress: 'stage3Complete'});
-        }
-
-        return {status: "success"};
-    } catch (err) {
-        console.error(`Error trying to process sqlite db (s3 key: ${getObjCmdInput.Key}).`)
-        console.error(err, err.stack);
-        return {status: "error", message: err.message}
-    } finally {
-        try {
-            if (db) {
-                db.close();
+async function saveSessionsAndEarnings(userId, sessions, earnings) {
+    const sessionPuts = sessions.map(s => {
+        s.userId = userId;
+        // stupid hack
+        // Abstract sessions have the startDateTime of the first real session they're 
+        // built from. If we don't change it we'll have a duplicate key error between
+        // the abstract session and its first real session component. Adding a second
+        // *should* be ok; it's certainly not foolproof but it would be extremely
+        // unlikely to have two sessions just one second apart and it's not large 
+        // enough that it will cause problems when we retrieve prior coherence values
+        // to calculate performance rewards.
+        if (s.isAbstract) s.startDateTime = s.startDateTime + 1;
+        return {
+            PutRequest: {
+                Item: s
             }
-            if (tmpDir) {
-                await rm(tmpDir, { recursive: true });
+        };
+    });
+
+    const earningsPuts = earnings.map(e => {
+        const amount = earningsAmounts[e.earnings];
+        if (!amount) throw new Error(`Unrecognized earnings type ${e.earnings}.`)
+
+        return {
+            PutRequest: {
+                Item: {
+                    userId: userId,
+                    dateType: `${e.day}|${e.earnings}`,
+                    amount: amount
+                }
             }
-        } catch (e) {
-            console.error(`Error closing or removing sqlite db in ${tmpDir}.`, e);
         }
+    });
+    
+    // slice into arrays of no more than 25 PutRequests due to DynamoDB limits
+    while (earningsPuts.length + sessionPuts.length > 0) {
+        const params = { RequestItems: {} };
+        const earningsChunkSize = Math.min(earningsPuts.length, 25);
+        const sessionsChunkSize = Math.min(sessionPuts.length, 25 - earningsChunkSize);
+        if (earningsChunkSize > 0) {
+            params.RequestItems[earningsTable] = earningsPuts.splice(0, earningsChunkSize);
+        }
+        if (sessionsChunkSize > 0) {
+            params.RequestItems[sessionsTable] = sessionPuts.splice(0, sessionsChunkSize);
+        }
+        const resp = await docClient.send(new BatchWriteCommand(params));
+        if (resp.UnprocessedItems.length > 0) {
+            await retrySaveWithBackoff(resp.UnprocessedItems);
+        }
+    }
+}
+
+async function retrySaveWithBackoff(unprocessedItems) {
+    let remainingItems = unprocessedItems;
+    let curTry = 0;
+    const delayMs = 100;
+    const maxTries = 7;
+    while (curTry < maxTries && remainingItems.length > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayMs * Math.pow(2, curTry)));
+        console.log(`Got unprocessed items saving earnings and sessions, re-attempting try #${curTry}...`);
+        const resp = await docClient.send(new BatchWriteCommand(remainingItems));
+        remainingItems = resp.UnprocessedItems;
+        curTry += 1;
+    }
+    if (remainingItems.length > 0) {
+        console.error(`Failed to save all earnings and sessions; after ${curTry} attempts there are ${remainingItems.length} unsaved items left.`);
+    } else {
+        console.log('Successfully saved all earnings and sessions on retry.');
     }
 }
 
@@ -158,37 +212,8 @@ async function lastUploadedSessionTime(userId) {
     return dynResults.Items[0].startDateTime;
 }
 
-async function writeSegments(userId, rows, isRest) {
-    const putRequests = rows.map(r => {
-        return {
-            PutRequest: {
-                Item: {
-                    userId: userId,
-                    endDateTime: r.end_date_time,
-                    avgCoherence: r.avg_coherence,
-                    stage: r.stage,
-                    isRest: isRest
-                }
-            }
-        };
-    });
-    
-    // slice into arrays of no more than 25 PutRequests due to DynamoDB limits
-    const chunks = [];
-    for (let i = 0; i < putRequests.length; i += 25) {
-        chunks.push(putRequests.slice(i, i + 25));
-    }
-
-    for (let i=0; i<chunks.length; i++) {
-        const chunk = chunks[i];
-        const params = { RequestItems: {} };
-        params['RequestItems'][sessionsTable] = chunk;
-        await docClient.send(new BatchWriteCommand(params));
-    }
-}
-
 const rowToObject = (result) => {
-    const rowProps = Object.keys(result).map(camelCase);
+    const rowProps = Object.keys(result).map(camelCase).map(k => k.startsWith('emwave') ? k.replace('emwave', 'emWave') : k);
     const rowVals = Object.values(result);
     return zipObject(rowProps, rowVals);
 }
@@ -209,7 +234,7 @@ const realSessionsToAbstractSessions = (sessions) => {
     // any sessions that are shorter than the maximum session
     // length are grouped by day for processing into abstract sessions
     for (const s of sessions) {
-        const durMin = Math.round(s.durationSec / 60);
+        const durMin = Math.round(s.durationSeconds / 60);
         const sess = Object.assign({}, s);
         sess.startDateTime = s.pulseStartTime;
         delete(sess.pulseStartTime);
@@ -236,10 +261,10 @@ const realSessionsToAbstractSessions = (sessions) => {
             let startDateTime = Number.MAX_SAFE_INTEGER;
             for (let i=0; i<s.length; i++) {
                 if (s[i].startDateTime < startDateTime) startDateTime = s[i].startDateTime;
-                durationSec += s[i].durationSec;
+                durationSec += s[i].durationSeconds;
                 cohSum += s[i].weightedAvgCoherence
             }
-            results.push({startDateTime: startDateTime, durationSec: durationSec, weightedAvgCoherence: cohSum / s.length, isComplete: true, isAbstract: true});
+            results.push({startDateTime: startDateTime, durationSeconds: durationSec, weightedAvgCoherence: cohSum / s.length, isComplete: true, isAbstract: true});
         }
     }
 
@@ -291,4 +316,4 @@ const maximizeCompleteSessions = (curDur, sessions, results) => {
     return maximizeCompleteSessions(curDur, sessions, results);
 }
 
-export const forTesting = { realSessionsToAbstractSessions }
+exports.forTesting = { realSessionsToAbstractSessions }
