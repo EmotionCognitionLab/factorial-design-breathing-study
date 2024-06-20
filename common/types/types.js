@@ -4,7 +4,9 @@ export const earningsTypes = Object.freeze({
     COMPLETION_BREATH2: 'c_breath2',
     PERFORMANCE_BREATH2: 'p_breath2',
     TOP_66: 'top_66',
-    TOP_25: 'top_25'
+    TOP_25: 'top_25',
+    VISIT_1: 'visit1',
+    VISIT_2: 'visit2'
 });
 
 export const earningsAmounts = Object.freeze({
@@ -13,7 +15,10 @@ export const earningsAmounts = Object.freeze({
     [earningsTypes.COMPLETION_BREATH2]: 8,
     [earningsTypes.PERFORMANCE_BREATH2]: 4,
     [earningsTypes.TOP_66]: 3,
-    [earningsTypes.TOP_25]: 4
+    [earningsTypes.TOP_25]: 4,
+    [earningsTypes.VISIT_1]: 25,
+    [earningsTypes.VISIT_2]: 25
+
 });
 
 export const maxSessionMinutes = 18;

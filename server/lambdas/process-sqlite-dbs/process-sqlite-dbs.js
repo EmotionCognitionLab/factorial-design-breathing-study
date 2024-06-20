@@ -4,7 +4,7 @@ import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { QueryCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb'
 import { s3Client as s3 , dynamoDocClient as docClient } from '../common/aws-clients';
 import { maxSessionMinutes, earningsTypes, earningsAmounts } from '../../../common/types/types.js';
-import { trainingQualityRewards, trainingTimeRewards } from './earnings.js';
+import { trainingQualityRewards, trainingTimeRewards, visitRewards } from './earnings.js';
 import Db from 'db/db.js';
 import Database from 'better-sqlite3';
 import { mkdtemp, rm, writeFile } from 'fs/promises';
@@ -65,8 +65,18 @@ export async function handler(event) {
         );
         const timeRewards = trainingTimeRewards(sqliteDb, user.condition, lastTimeEarning);
 
+        // get visit earnings
+        let v1Rewards = [];
+        if (!prevEarnings.some(e => e.type === earningsTypes.VISIT_1)) {
+            v1Rewards = visitRewards(sqliteDb, 1);
+        }
+        let v2Rewards = [];
+        if (!prevEarnings.some(e => e.type === earningsTypes.VISIT_2)) {
+            v2Rewards = visitRewards(sqliteDb, 2);
+        }
+
         //save earnings and sessions
-        const allEarnings = [...qualityRewards, ...timeRewards];
+        const allEarnings = [...qualityRewards, ...timeRewards, ...v1Rewards, ...v2Rewards];
         const nonEarningSessions = newSessions.filter(s => s.stage != 2);
         for (const s of nonEarningSessions) {
             if (s.pulseStartTime) {

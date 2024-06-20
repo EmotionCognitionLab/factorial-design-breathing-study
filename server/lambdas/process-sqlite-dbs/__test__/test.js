@@ -78,27 +78,6 @@ describe("Processing a sqlite file", () => {
         }
     });
 
-    it("should only save earnings for sessions in stage 2", async () => {
-        const sessions = [
-            { emwave_session_id: 'cafe450', avg_coherence: 1.2, pulse_start_time: dayjs().subtract(8, 'hours').unix(), valid_status: 1, duration_seconds: maxSessionMinutes*60, stage: 1, weighted_avg_coherence: (5/18)*1.2 },
-            { emwave_session_id: 'cafe451', avg_coherence: 2.3, pulse_start_time: dayjs().subtract(6, 'hours').unix(), valid_status: 1, duration_seconds: maxSessionMinutes*60, stage: 2, weighted_avg_coherence: 2.3 },
-            { emwave_session_id: 'cafe452', avg_coherence: 1.7, pulse_start_time: dayjs().subtract(4, 'hours').unix(), valid_status: 1, duration_seconds: maxSessionMinutes*60, stage: 3, weighted_avg_coherence: (5/18)*1.7 },
-        ];
-        await runLambdaTestWithSessions(db, sessions);
-
-        const addedEarnings = await getDynamoEarnings(theUserId);
-        const sessionsWithEarnings = sessions.filter(s => s.stage == 2 && s.duration_seconds >= maxSessionMinutes*60);
-        expect(addedEarnings.length).toBe(sessionsWithEarnings.length);
-        const earningsDay = dayjs.unix(sessionsWithEarnings[0].pulse_start_time).format('YYYY-MM-DD')
-        expect(addedEarnings).toEqual(expect.arrayContaining([
-            {
-                userId: theUserId,
-                amount: earningsAmounts[earningsTypes.BREATH1],
-                dateType: `${dayjs.tz(earningsDay, 'YYYY-MM-DD', 'America/Los_Angeles').format()}|${earningsTypes.BREATH1}`
-            }
-        ]));
-    });
-
     it("should only save sessions newer than the last uploaded session", async () => {
         const lastSessionTime = dayjs().subtract(1, 'day');
         const dynamoSessions = [{ emWaveSessionId: 'cafe451', avgCoherence: 2.3, startDateTime: lastSessionTime.unix(), validStatus: 1, durationSeconds: maxSessionMinutes*60, stage: 2, weightedAvgCoherence: 2.3 }];
@@ -182,6 +161,32 @@ describe("Processing a sqlite file", () => {
             {userId: theUserId, amount: earningsAmounts[earningsTypes.BREATH1], dateType: `${sessTime.startOf('day').format()}|${earningsTypes.BREATH1}`},
             {userId: theUserId, amount: earningsAmounts[earningsTypes.TOP_66], dateType: `${sessTime.format()}|${earningsTypes.TOP_66}`}
         ]));
+    });
+
+    it.each([{visit: 1, stage: 1}, {visit: 2, stage: 3}])("should save visit $visit rewards when they have not yet been earned and stage $stage sessions exist", async ({visit, stage}) => {
+        const sessDate = dayjs().subtract(6, 'hours');
+        const sessions = [
+            { emwave_session_id: 'cafe451', avg_coherence: 1.6, pulse_start_time: sessDate.unix(), valid_status: 1, duration_seconds: 300, stage: stage, weighted_avg_coherence: 1.6 },
+        ];
+        await runLambdaTestWithSessions(db, sessions);
+
+        const addedEarnings = await getDynamoEarnings(theUserId);
+        expect(addedEarnings.length).toBe(1);
+        const earnType = visit == 1 ? earningsTypes.VISIT_1 : earningsTypes.VISIT_2;
+        expect(addedEarnings).toStrictEqual([{userId: theUserId, dateType: `${sessDate.tz('America/Los_Angeles').format()}|${earnType}`, amount: earningsAmounts[earnType]}]);
+    });
+
+    it.each([{visit: 1, stage: 1}, {visit: 2, stage: 3}])("should not save visit $visit rewards when they have already been earned", async ({visit, stage}) => {
+        const earnType = visit == 1 ? earningsTypes.VISIT_1 : earningsTypes.VISIT_2;
+        mockGetUserEarnings.mockReturnValueOnce([{type: earnType, date: dayjs().format(), userId: theUserId, amount: earningsAmounts[earnType]}]);
+
+        const sessDate = dayjs().subtract(6, 'hours');
+        const sessions = [
+            { emwave_session_id: 'cafe451', avg_coherence: 1.6, pulse_start_time: sessDate.unix(), valid_status: 1, duration_seconds: 300, stage: stage, weighted_avg_coherence: 1.6 },
+        ];
+        await runLambdaTestWithSessions(db, sessions);
+        const addedEarnings = await getDynamoEarnings(theUserId);
+        expect(addedEarnings.length).toBe(0);
     });
 
     afterAll(async () => {

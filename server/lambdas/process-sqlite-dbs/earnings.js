@@ -167,3 +167,16 @@ const performanceQualityRewards = (eligibleSessions, priorCoherenceValues) => {
 
     return earnings;
 }
+
+export const visitRewards = (sqliteDb, visitNum) => {
+    if (visitNum != 1 && visitNum != 2) throw new Error(`Invalid visit number. Expected 1 or 2 but got ${visitNum}.`);
+    const stage = visitNum == 1 ? 1 : 3;
+
+    const stmt = sqliteDb.prepare('select max(pulse_start_time) as pulseStartTime from emwave_sessions where stage = ?');
+    const res = stmt.get(stage);
+    if (res.pulseStartTime) {
+        const earnType = stage == 1 ? earningsTypes.VISIT_1 : earningsTypes.VISIT_2;
+        return [ {day: dayjs.unix(res.pulseStartTime).tz('America/Los_Angeles').format(), earnings: earnType} ];
+    }
+    return [];
+}
