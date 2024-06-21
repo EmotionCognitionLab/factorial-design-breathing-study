@@ -19,6 +19,7 @@ module.exports = {
       /package-lock.json/.test(file)
     },
     asar: true,
+    extraResource: ['./src/powershell/hide-emwave.ps1'],
     prune: true
   },
   rebuildConfig: {},
