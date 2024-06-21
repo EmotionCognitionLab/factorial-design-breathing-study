@@ -14,12 +14,14 @@
     import { SessionStore } from '../session-store.js'
 
     const uploadComplete = ref(false)
+    const emit = defineEmits(['upload-complete'])
 
     onMounted(async () => {
         const sess = await SessionStore.getRendererSession()
         await window.mainAPI.uploadEmWaveData(sess)
         await window.mainAPI.uploadBreathData(sess)
         uploadComplete.value = true
+        emit('upload-complete')
     })
 </script>
 <style scoped>

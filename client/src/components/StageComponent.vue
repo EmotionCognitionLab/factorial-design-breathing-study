@@ -37,13 +37,41 @@
         </div>
 
         <div v-if="!reloadNeeded && sessionDone">
-            <UploadComponent>
+            <UploadComponent @uploadComplete="showEndOfSessionText">
                 <template #preUploadText>
                     <div class="instruction">Terrific! Please wait while we upload your data...</div>
                 </template>
                 <template #postUploadText>
-                        <div v-if="!doneForToday" class="instruction">Upload complete! Please come back later today for more training.</div>
-                        <div v-else class="instructions">Upload complete. You're all done for today! Please come back tomorrow for more training.</div>
+                        <div class="instructions">
+                            <div id="waiting" :class="{hidden: showFirstSessionPostUploadText || showSubsequentSessionPostUploadText}">
+                                Crunching the numbers...
+                                <i class="fa fa-spinner fa-spin" style="font-size: 48px;"></i>
+                            </div>
+                            <div :class="{hidden: !showFirstSessionPostUploadText}">
+                                <p>
+                                    Congratulations on completing your first session! 
+                                    You will receive a small payment for every 18 minute practice each day. 
+                                    You can view these payments by going to the "View" menu and selecting "Earnings".
+                                    In addition to these payments, after each session, we will check whether you earned any 
+                                    bonuses. The first session is not eligible for any bonuses but subsequent sessions will be.
+                                </p>
+                                <p v-if="factors.rewards=='completion'">
+                                    Your bonuses will be based on your streaks of practice session completion. 
+                                    You can earn a bonus for completing both sessions each day, and for completing at least one
+                                    session three days in a row. The more consistently you practice, the better!
+                                </p>
+                                <p v-else>
+                                    Your bonuses will be based on your coherence scores during your practice sessions. 
+                                    The higher your coherence score, the better!
+                                </p>
+                            </div>
+                            <div id="subsequentSession" :class="{hidden: !showSubsequentSessionPostUploadText}">
+                                <p>You have finished your session. Great job!</p>
+                                <p>
+                                    {{ rewardText }}
+                                </p>
+                            </div>
+                        </div>
                     <br/>
                     <button class="button" @click="quit">Quit</button>
                 </template>
@@ -64,7 +92,12 @@ import { SessionStore } from '../session-store.js'
 import TrainingComponent from './TrainingComponent.vue'
 import UploadComponent from './UploadComponent.vue'
 import { yyyymmddString, conditionToFactors, emoPicExt } from '../utils'
-import { maxSessionMinutes } from '../../../common/types/types.js'
+import { earningsTypes, maxSessionMinutes } from '../../../common/types/types.js'
+import dayjs from 'dayjs'
+import timezone from 'dayjs/plugin/timezone'
+import utc from 'dayjs/plugin/utc'
+dayjs.extend(timezone)
+dayjs.extend(utc)
 
 import seatedIcon from '../assets/seated-person.png'
 
@@ -83,6 +116,14 @@ const emoPic = ref(null)
 const showEmoPic = ref(false)
 const pace = ref(null)
 const sessionDurationMs = ref(maxSessionMinutes*60*1000)
+let apiClient
+let startEarnings
+let stage2Sessions
+
+const showFirstSessionPostUploadText = ref(false)
+const showSubsequentSessionPostUploadText = ref(false)
+const rewardText = ref(null)
+
 
 onBeforeMount(async() => {
     try {
@@ -90,7 +131,8 @@ onBeforeMount(async() => {
         stage = Number.parseInt(props.stageNum)
         window.mainAPI.setStage(stage)
         const session = await SessionStore.getRendererSession()
-        const apiClient = new ApiClient(session)
+        apiClient = new ApiClient(session)
+        startEarnings = await apiClient.getEarningsForSelf()
         const data = await apiClient.getSelf()
         pace.value = data.pace
         factors.value = conditionToFactors(data.condition)
@@ -124,6 +166,11 @@ async function instructionsRead() {
 }
 
 async function pacerFinished() {
+    // get all of our stage 2 sessions - we'll need them in showEndOfSessionText
+    // and once sessionDone is set to true the database is closed and
+    // we can't get them any more
+    stage2Sessions = await window.mainAPI.getEmWaveSessionsForStage(2);
+
     sessionDone.value = true
     setTimeout(async () => { // use setTimeout to give emWave a moment to save the session
         const s = (await window.mainAPI.extractEmWaveSessionData(-1, false))[0]
@@ -131,6 +178,47 @@ async function pacerFinished() {
         
         doneForToday.value = (await window.mainAPI.getEmWaveSessionMinutesForDayAndStage(new Date(), 2)) >= 36 // two 18-minute sessions/day
     }, 500) 
+}
+
+async function showEndOfSessionText() {
+    if (stage2Sessions.length == 1) {
+        // then show the end-of-first-session text and we're done
+        showFirstSessionPostUploadText.value = true;
+        return
+    }
+
+    // not the end of the first session
+    // give earnings some time to be processed
+    await new Promise(resolve => setTimeout(() => resolve(), 5000))
+    // now fetch our earnings
+    const earnings = await apiClient.getEarningsForSelf();
+    const newEarnings = earnings.filter(earning => !startEarnings.some(oldEarning => `${oldEarning.startDateTime}|${oldEarning.type}` === `${earning.startDateTime}|${earning.type}`))
+    if (newEarnings.length == 0) {
+        showSubsequentSessionPostUploadText.value = true
+        return
+    }
+
+    let bonusEarnings
+    if (factors.value.rewards == 'completion') {
+        bonusEarnings = newEarnings.filter(e => e.type === earningsTypes.STREAK_BONUS || e.type === earningsTypes.COMPLETION_BREATH2)
+    } else {
+        bonusEarnings = newEarnings.filter(e => e.type === earningsTypes.TOP_25 || e.type === earningsTypes.TOP_66)
+    }
+    
+    if (bonusEarnings.length > 1) {
+        console.error(`Expected no more than one bonus earning since ${startEarnings}, but found ${bonusEarnings.length}.`)
+    } else if (bonusEarnings.length == 1) {
+        const e = bonusEarnings[0];
+        if (e.type === earningsTypes.COMPLETION_BREATH2) {
+            rewardText.value = `Congratulations! You received a $${e.amount / 2} bonus for completing all of today's practice sessions!`
+        } else if (e.type === earningsTypes.STREAK_BONUS) {
+            rewardText.value = `Congratulations! You received a $${e.amount} bonus for doing at least one session per day for three days in a row!`
+        } else if (e.type === earningsTypes.TOP_25 || e.type === earningsTypes.TOP_66) {
+            const adjective = e.type === earningsTypes.TOP_25 ? 'extraordinary' : 'outstanding'
+            rewardText.value = `Congratulations! You received a $${e.amount} bonus for your ${adjective} coherence scores during your practice session!`
+        }
+    }
+    showSubsequentSessionPostUploadText.value = true
 }
 
 function quit() {
