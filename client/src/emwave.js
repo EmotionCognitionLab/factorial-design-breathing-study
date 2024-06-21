@@ -176,7 +176,7 @@ export default {
     },
 
     hideEmWave() {
-	    const hideScript = app.isPackaged ? path.join(app.getAppPath(), '../app/src/powershell/hide-emwave.ps1') : path.join(app.getAppPath(), '../client/src/powershell/hide-emwave.ps1')
+	    const hideScript = app.isPackaged ? path.join(app.getAppPath(), '../hide-emwave.ps1') : path.join(app.getAppPath(), '../client/src/powershell/hide-emwave.ps1')
         if (process.platform === 'win32' && emWavePid) {
            spawn('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', [hideScript, emWavePid], {stdio:'ignore'});
         }
