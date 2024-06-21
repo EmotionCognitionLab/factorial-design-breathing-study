@@ -59,6 +59,7 @@ const createWindow = async () => {
 const EARNINGS_MENU_ID = 'earnings'
 const TRAINING_MENU_ID = 'training'
 const SETTINGS_MENU_ID = 'settings'
+const LAB_VISIT_MENU_ID = 'lab-visit'
 
 function buildMenuTemplate(window) {
   const isMac = process.platform === 'darwin'
@@ -119,6 +120,7 @@ function buildMenuTemplate(window) {
         { type: 'separator' },
         { label: 'Earnings', id: EARNINGS_MENU_ID, click: () => window.webContents.send('go-to', '/earnings')},
         { label: 'Daily Training', id: TRAINING_MENU_ID, click: () => window.webContents.send('go-to', '/current-stage')},
+        { label: 'Lab Visit 2', id: LAB_VISIT_MENU_ID, click: () => window.webContents.send('go-to', '/setup/3'), visible: false, accelerator: 'CmdOrCtrl+Shift+L'}
       ]
     },
     // { role: 'windowMenu' }

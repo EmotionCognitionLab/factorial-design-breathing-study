@@ -49,7 +49,7 @@ import { SessionStore } from './session-store'
 
 
 const routes = [
-    { path: '/setup', beforeEnter: practiceOrSetup, component: SetupComponent, props: {loggedIn: false} },
+    { path: '/setup/:stageNum', beforeEnter: practiceOrSetup, component: SetupComponent, props: true },
     { path: '/upload', component: UploadComponent },
     { path: '/signin', component: LoginComponent, name: 'signin', props: true },
     { path: '/login', beforeEnter: handleOauthRedirect, component: OauthRedirectComponent }, // TODO eliminate now-obsolete OauthRedirectComponent; the beforeEnter guard is now doing all the work
@@ -62,7 +62,7 @@ const routes = [
 ]
 
 const noAuthRoutes = ['/signin', '/login', '/']
-const dbRequiredRoutes = ['/earnings', '/current-stage', '/condition', '/setup']
+const dbRequiredRoutes = ['/earnings', '/current-stage', '/condition', '/setup/1', '/setup/3']
 
 const router = createRouter({
     history: import.meta.env.PROD ? createWebHashHistory() : createWebHistory(),

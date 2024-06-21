@@ -67,16 +67,18 @@
     // step 5: paced breathing @ 7s/breath
     // step 6: upload
     const step = ref(null)
+    const props = defineProps(['stageNum'])
     const paces = ref(['rest', 13.333, 12, 8.571])
     const errorText = ref(null)
     const errorRequiresQuit = ref(false)
     let pacerHasFinished = false
     let factors
     let session;
-    let apiClient;
-    const stage = 1;
+    let apiClient
+    let stage
     
     onBeforeMount(async() => {
+        stage = Number.parseInt(props.stageNum)
         session = await SessionStore.getRendererSession()
         apiClient = new ApiClient(session)
         factors = await getConditionFactors(apiClient)
