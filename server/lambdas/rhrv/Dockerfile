@@ -5,7 +5,7 @@ RUN  dnf -y install R-core \
     && dnf -y install openssl-devel \
     && dnf -y install libcurl-devel
 
-RUN Rscript -e "install.packages(c('httr', 'jsonlite', 'logger', 'RHRV', 'pracma'), repos = 'https://cloud.r-project.org/')"
+RUN Rscript -e "install.packages(c('httr', 'jsonlite', 'RHRV', 'logger', 'pracma'), repos = 'https://cloud.r-project.org/')"
 
 RUN dnf remove -y R-devel \
     && dnf -y remove openssl-devel \
