@@ -3,7 +3,7 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { QueryCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb'
 import { s3Client as s3 , dynamoDocClient as docClient } from '../common/aws-clients';
-import { maxSessionMinutes, earningsTypes, earningsAmounts } from '../../../common/types/types.js';
+import { maxSessionMinutes, earningsTypes, earningsAmounts, statusTypes } from '../../../common/types/types.js';
 import { trainingQualityRewards, trainingTimeRewards, visitRewards } from './earnings.js';
 import Db from 'db/db.js';
 import Database from 'better-sqlite3';
@@ -44,6 +44,11 @@ export async function handler(event) {
         const user = await db.getUser(userId);
         const prevEarnings = await db.earningsForUser(userId);
 
+        // set user to active if necessary
+        if (!user?.progress?.status) {
+            await db.updateUser(userId, {progress: { status: statusTypes.ACTIVE }});
+        }
+
         // get quality-based earnings
         const earningsEligible = newSessions.filter(sess => sess.stage === 2);
         const abstractSessions = realSessionsToAbstractSessions(earningsEligible);
@@ -73,6 +78,11 @@ export async function handler(event) {
         let v2Rewards = [];
         if (!prevEarnings.some(e => e.type === earningsTypes.VISIT_2)) {
             v2Rewards = visitRewards(sqliteDb, 2);
+        }
+
+        // if they earned v2Rewards it means they've completed the study
+        if (v2Rewards.length > 0) {
+            await db.updateUser(userId, {progress: { status: statusTypes.COMPLETE }})
         }
 
         //save earnings and sessions

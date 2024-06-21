@@ -13,7 +13,7 @@ dayjs.extend(utc);
 const lambdaLocal = require("lambda-local");
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, QueryCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
-import { maxSessionMinutes, earningsTypes, earningsAmounts } from '../../../../common/types/types';
+import { maxSessionMinutes, earningsTypes, earningsAmounts, statusTypes } from '../../../../common/types/types';
 const dynClient = new DynamoDBClient({region: process.env.REGION, endpoint: process.env.DYNAMO_ENDPOINT, apiVersion: "2012-08-10"});
 const docClient = DynamoDBDocumentClient.from(dynClient);
 const Database = require('better-sqlite3');
@@ -27,12 +27,14 @@ const earningsTable = process.env.EARNINGS_TABLE;
 
 const mockGetUser = jest.fn((userId) => ({userId: userId, condition: 2}));
 const mockGetUserEarnings = jest.fn((userId) => []);
+const mockUpdateUser = jest.fn((userId, updates) => {});
 
 jest.mock('db/db', () => {
     return jest.fn().mockImplementation(() => {
         return {
             getUser: (userId) => mockGetUser(userId),
-            earningsForUser: (userId) => mockGetUserEarnings(userId)
+            earningsForUser: (userId) => mockGetUserEarnings(userId),
+            updateUser: (userId, updates) => mockUpdateUser(userId, updates)
         };
     });
 });
@@ -53,6 +55,7 @@ afterEach(async () => {
     await th.dynamo.deleteTable(process.env.EARNINGS_TABLE);
     mockGetUser.mockClear();
     mockGetUserEarnings.mockClear();
+    mockUpdateUser.mockClear();
 });
 
 describe("Processing a sqlite file", () => {
@@ -187,6 +190,29 @@ describe("Processing a sqlite file", () => {
         await runLambdaTestWithSessions(db, sessions);
         const addedEarnings = await getDynamoEarnings(theUserId);
         expect(addedEarnings.length).toBe(0);
+    });
+
+    it("should set the user progress status to active if it is not already", async () => {
+        const sessions = [
+            { emwave_session_id: 'cafe450', avg_coherence: 1.2, pulse_start_time: dayjs().subtract(8, 'hours').unix(), valid_status: 1, duration_seconds: 300, stage: 1, weighted_avg_coherence: (5/18)*1.2 }
+        ];
+        await runLambdaTestWithSessions(db, sessions);
+
+        expect(mockUpdateUser).toHaveBeenCalledTimes(1);
+        expect(mockUpdateUser.mock.calls[0][0]).toBe(theUserId);
+        expect(mockUpdateUser.mock.calls[0][1]).toStrictEqual({progress: {status: statusTypes.ACTIVE}});
+    });
+
+    it("should set the user progress status to complete if v2 rewards are earned", async () => {
+        const sessions = [
+            { emwave_session_id: 'cafe450', avg_coherence: 1.2, pulse_start_time: dayjs().subtract(8, 'hours').unix(), valid_status: 1, duration_seconds: 300, stage: 3, weighted_avg_coherence: (5/18)*1.2 }
+        ];
+        mockGetUser.mockReturnValueOnce({userId: theUserId, condition: 12, progress: {status: statusTypes.ACTIVE}});
+        await runLambdaTestWithSessions(db, sessions);
+
+        expect(mockUpdateUser).toHaveBeenCalledTimes(1);
+        expect(mockUpdateUser.mock.calls[0][0]).toBe(theUserId);
+        expect(mockUpdateUser.mock.calls[0][1]).toStrictEqual({progress: {status: statusTypes.COMPLETE}});
     });
 
     afterAll(async () => {

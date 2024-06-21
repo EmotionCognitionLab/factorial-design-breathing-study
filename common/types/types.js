@@ -21,4 +21,10 @@ export const earningsAmounts = Object.freeze({
 
 });
 
+export const statusTypes = Object.freeze({
+    ACTIVE: 'active',
+    COMPLETE: 'complete',
+    DROPPED: 'dropped'
+})
+
 export const maxSessionMinutes = 18;
