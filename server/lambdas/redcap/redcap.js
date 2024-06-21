@@ -75,6 +75,10 @@ exports.createParticipant = async (event) => {
     }
 }
 
+exports.handleEvent = async (event) => {
+    console.log(event.body);
+}
+
 const getRandomId = () => {
     const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const noun = nouns[Math.floor(Math.random() * nouns.length)];

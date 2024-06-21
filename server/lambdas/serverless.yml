@@ -41,6 +41,12 @@ functions:
           path: /rc
     environment:
       TOKEN: ${ssm:/${self:service}/${self:provider.stage}/info/redcap/token}
+  handle-rc-event:
+    handler: redcap/redcap.handleEvent
+    events:
+      - httpApi:
+          method: POST
+          path: /rc/event
   find-hrv-peaks:
     architecture: arm64
     runtime: provided.al2023
