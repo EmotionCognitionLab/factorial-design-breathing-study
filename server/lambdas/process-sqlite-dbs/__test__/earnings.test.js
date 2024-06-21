@@ -10,9 +10,8 @@ dayjs.extend(customParseFormat);
 const mockEarningsForUser = jest.fn(() => []);
 const mockGetAllUsers = jest.fn(() => []);
 const mockSaveEarnings = jest.fn(() => {});
-const mockSegmentsForUser = jest.fn(() => []);
 
-const dbMocks = [mockEarningsForUser, mockGetAllUsers, mockSaveEarnings, mockSegmentsForUser];
+const dbMocks = [mockEarningsForUser, mockGetAllUsers, mockSaveEarnings];
 
 jest.mock('db/db', () => {
     return jest.fn().mockImplementation(() => {
@@ -20,7 +19,6 @@ jest.mock('db/db', () => {
             earningsForUser: (userId, earnType) => mockEarningsForUser(userId, earnType),
             getAllUsers: () => mockGetAllUsers(),
             saveEarnings: (userId, earningsType, dateDone) => mockSaveEarnings(userId, earningsType, dateDone),
-            segmentsForUser: (userId, stage, startDate, endDate) => mockSegmentsForUser(userId, stage, startDate, endDate),
         };
     });
 });
