@@ -6,7 +6,11 @@
                     Throughout your session, you will see a "coherence” score. This score shows whether your body is relaxed, according to your heart rate.  The higher the score the better!
                 </p>
                 <p>
-                    If you start to feel lightheaded or dizzy, try breathing less deeply. If that doesn't help, remove the sensor from your ear and take a break. Try again later when you're feeling better. Try to breathe in a relaxed way without taking in more air than necessary to stay in synchrony with the pacer.
+                    If you start to feel lightheaded or dizzy, try breathing less deeply.
+                    If that doesn't help, remove the sensor from your ear and take a break.
+                    Try again later when you're feeling better.
+                    Try to breathe in a relaxed way without taking in more air than necessary.
+                    Don't forget to breathe in through your nose and out through your mouth or nose, whichever feels better.
                 </p>
                 <button @click="instructionsRead">Continue</button>
             </div>
