@@ -58,7 +58,8 @@ const routes = [
     { path: '/donetoday', component: DoneTodayComponent},
     { path: '/alldone', component: StudyCompleteComponent},
     { path: '/', name: 'landing-page', component: ConnectingComponent},
-    { path: '/condition', component: ConditionComponent}
+    { path: '/condition', component: ConditionComponent},
+    { path: '/current-stage', redirect: '/setup/1' }
 ]
 
 const noAuthRoutes = ['/signin', '/login', '/']
