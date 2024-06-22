@@ -31,7 +31,12 @@
                     <button @click="showEmoPic=false">Continue</button>
                 </div>
                 <div v-else>
-                    <TrainingComponent :regimes="[{durationMs: sessionDurationMs, breathsPerMinute: pace, randomize: false}]" :factors=factors @pacerFinished="pacerFinished"></TrainingComponent>
+                    <TrainingComponent 
+                        :regimes="[{durationMs: sessionDurationMs, breathsPerMinute: pace, randomize: false}]"
+                        :factors=factors
+                        @pacerFinished="pacerFinished"
+                        @sessionRestart="saveEmWaveSessionData">
+                    </TrainingComponent>
                 </div>
             </div>
         </div>
@@ -92,7 +97,7 @@ import { SessionStore } from '../session-store.js'
 import TrainingComponent from './TrainingComponent.vue'
 import UploadComponent from './UploadComponent.vue'
 import { yyyymmddString, conditionToFactors, emoPicExt } from '../utils'
-import { earningsTypes, maxSessionMinutes } from '../../../common/types/types.js'
+import { earningsTypes, maxSessionMinutes, minSessionSeconds } from '../../../common/types/types.js'
 import dayjs from 'dayjs'
 import timezone from 'dayjs/plugin/timezone'
 import utc from 'dayjs/plugin/utc'
@@ -172,12 +177,27 @@ async function pacerFinished() {
     stage2Sessions = await window.mainAPI.getEmWaveSessionsForStage(2);
 
     sessionDone.value = true
-    setTimeout(async () => { // use setTimeout to give emWave a moment to save the session
+    await saveEmWaveSessionData()
+    doneForToday.value = (await window.mainAPI.getEmWaveSessionMinutesForDayAndStage(new Date(), 2)) >= 36 // two 18-minute sessions/day
+}
+
+function saveEmWaveSessionData() {
+    return new Promise(resolve => setTimeout(async () => { // use setTimeout to give emWave a moment to save the session
+        // if the session ended w/o emwave writing any data
+        // (e.g., sensor wasn't attached at session start)
+        // this may fetch a session that we have already stored,
+        // generating unique constraint violation when we try to save
+        // it again
         const s = (await window.mainAPI.extractEmWaveSessionData(-1, false))[0]
-        await window.mainAPI.saveEmWaveSessionData(s.sessionUuid, s.avgCoherence, s.pulseStartTime, s.validStatus, s.durationSec, stage, emoPicNum)
-        
-        doneForToday.value = (await window.mainAPI.getEmWaveSessionMinutesForDayAndStage(new Date(), 2)) >= 36 // two 18-minute sessions/day
-    }, 500) 
+        if (s.durationSec > minSessionSeconds) {
+            await window.mainAPI.saveEmWaveSessionData(s.sessionUuid, s.avgCoherence, s.pulseStartTime, s.validStatus, s.durationSec, stage, emoPicNum)
+            // unset emoPicNum so that if this was just a partial session
+            // and they begin another one without seeing an emopic we 
+            // don't save it on the next one
+            emoPicNum = null
+        }
+        resolve()
+    }, 500) );
 }
 
 async function showEndOfSessionText() {

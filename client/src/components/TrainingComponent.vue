@@ -42,7 +42,7 @@ import TimerComponent from './TimerComponent.vue'
 import { epToCoherence } from '../coherence.js'
 
 const props = defineProps(['regimes', 'factors'])
-const emit = defineEmits(['pacer-started', 'pacer-stopped', 'pacer-finished'])
+const emit = defineEmits(['pacer-started', 'pacer-stopped', 'pacer-finished', 'session-restart'])
 
 const ibiData = new CBuffer(2).fill(1000) // we want the chart to show a HR of 60 when the app first loads, and 60000 ms/minute / 1000 ms/beat = 60 beats/minute
 const pacer = ref(null)
@@ -174,6 +174,7 @@ function resetDisplay() {
     const toPull = finishedRegimes.map(r => remainingRegimes.value.findIndex(elem => elem.id === r.id)).filter(idx => idx !== -1)
     if (toPull.length > 0) pullAt(remainingRegimes.value, toPull)
     timer.value.reset()
+    emit('session-restart')
 }
 
 onMounted(async () => {
