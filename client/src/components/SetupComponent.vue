@@ -76,14 +76,16 @@
     let session;
     let apiClient
     let stage
+    let stepKey
     
     onBeforeMount(async() => {
         stage = Number.parseInt(props.stageNum)
+        stepKey = `stage${stage}Step`
         session = await SessionStore.getRendererSession()
         apiClient = new ApiClient(session)
         factors = await getConditionFactors(apiClient)
         window.mainAPI.setStage(stage)
-        const curStep = await window.mainAPI.getKeyValue('stage1Step')
+        const curStep = await window.mainAPI.getKeyValue(stepKey)
         if (!curStep) {
             step.value = 1
         } else {
@@ -126,7 +128,7 @@
             }
             
             step.value += 1
-            await window.mainAPI.setKeyValue('stage1Step', step.value)
+            await window.mainAPI.setKeyValue(stepKey, step.value)
             if (step.value > 3 && step.value < 6) {
                 // reset the pacer
                 pacerHasFinished = false
@@ -149,7 +151,7 @@
         }
         
         step.value += 1 // send them straight to upload; no need for them to click a button
-        await window.mainAPI.setKeyValue('stage1Step', step.value)
+        await window.mainAPI.setKeyValue(stepKey, step.value)
     }
 
     async function setPace() {
