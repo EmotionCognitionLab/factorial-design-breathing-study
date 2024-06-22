@@ -174,11 +174,15 @@ async function pacerFinished() {
     // get all of our stage 2 sessions - we'll need them in showEndOfSessionText
     // and once sessionDone is set to true the database is closed and
     // we can't get them any more
-    stage2Sessions = await window.mainAPI.getEmWaveSessionsForStage(2);
-
-    sessionDone.value = true
+    // use setTimeout to give emWave a moment to write the data
+    const p = new Promise(resolve => setTimeout(async () => {
+        stage2Sessions = await window.mainAPI.getEmWaveSessionsForStage(2)
+        resolve()
+    }, 500))
+    await p
     await saveEmWaveSessionData()
     doneForToday.value = (await window.mainAPI.getEmWaveSessionMinutesForDayAndStage(new Date(), 2)) >= 36 // two 18-minute sessions/day
+    sessionDone.value = true
 }
 
 function saveEmWaveSessionData() {
@@ -201,7 +205,8 @@ function saveEmWaveSessionData() {
 }
 
 async function showEndOfSessionText() {
-    if (stage2Sessions.length == 1) {
+    const completeSessionCount = stage2Sessions.filter(s => s.durationSeconds >= maxSessionMinutes * 60).length
+    if (completeSessionCount <= 1) {
         // then show the end-of-first-session text and we're done
         showFirstSessionPostUploadText.value = true;
         return
