@@ -76,9 +76,7 @@ exports.createParticipant = async (event) => {
 }
 
 exports.handleEvent = async (event) => {
-    let buff = Buffer.from(event.body, "base64");
-    let eventBodyStr = buff.toString('UTF-8');
-    console.log(eventBodyStr);
+    console.log(event.body);
 }
 
 const getRandomId = () => {
