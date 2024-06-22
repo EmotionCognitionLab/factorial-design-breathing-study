@@ -28,3 +28,4 @@ export const statusTypes = Object.freeze({
 })
 
 export const maxSessionMinutes = 18;
+export const minSessionSeconds = 30;

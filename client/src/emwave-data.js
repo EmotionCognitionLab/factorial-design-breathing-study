@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3'
 import { ipcMain, app } from 'electron'
+import { minSessionSeconds } from '../../common/types/types'
 // import * as Logger from 'logger'
 const Logger = require('logger')
 
@@ -27,14 +28,13 @@ function emWaveDbPath() {
 function deleteShortSessions() {
     const db = new Database(emWaveDbPath(), {fileMustExist: true }) //nativeBinding: '../client/node_modules/better-sqlite3/build/Release/better_sqlite3.node'});
     try {
-        const shortSessionLength = 30; // we delete all sessions less than or equal to 30 seconds long
-        const deleteStmt = db.prepare(`select FirstName, datetime(IBIStartTime, 'unixepoch', 'localtime') as start, datetime(IBIEndTime, 'unixepoch', 'localtime') as end from Session join User on Session.UserUuid = User.UserUuid where IBIEndTime - IBIStartTime <= ${shortSessionLength}`);
-        const toDelete = deleteStmt.all();
+        const deleteStmt = db.prepare(`select FirstName, datetime(IBIStartTime, 'unixepoch', 'localtime') as start, datetime(IBIEndTime, 'unixepoch', 'localtime') as end from Session join User on Session.UserUuid = User.UserUuid where IBIEndTime - IBIStartTime <= ?`);
+        const toDelete = deleteStmt.all(minSessionSeconds);
         for (let shortSession of toDelete) {
             logger.log(`Deleting short session for user ${shortSession.FirstName} that runs from ${shortSession.start} to ${shortSession.end}.`);
         }
-        const stmt = db.prepare(`delete from Session where IBIEndTime - IBIStartTime <= ${shortSessionLength}`);
-        stmt.run();
+        const stmt = db.prepare(`delete from Session where IBIEndTime - IBIStartTime <= ?`);
+        stmt.run(minSessionSeconds);
     } finally {
         db.close();
     }
