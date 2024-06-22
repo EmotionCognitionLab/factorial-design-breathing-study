@@ -19,16 +19,22 @@
                 <RestComponent @timerFinished="nextStep" />
             </div>
             <div v-else-if="step==3">
-                <p>Next you're going to breathe at a specific pace. Breathe in when the ball is going up and out when it is going down.</p>
-                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-2], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
+                <p>
+                    Next you're going to breathe at a specific pace.
+                    Breathe in through your nose when the ball is going up and out through your mouth or nose when it is going down.
+                </p>
+                <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-2], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped"/>
             </div>
             <div v-else-if="step==4">
-                <p>Good work! This will also be paced breathing, but at a different pace.</p>
+                <p>
+                    Good work! This will also be paced breathing, but at a different pace.
+                    Remember to breathe in through your nose and out through your nose or mouth.
+                </p>
                 <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-2], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
             </div>
             <div v-else-if="step==5">
                 <p>
-                    Nice! One more to go and we'll be all done with setup.
+                    Nice! One more to go and we'll be all done with setup. Remember to breathe in through your nose.
                 </p>
                 <TrainingComponent :regimes="[{durationMs: 210000, breathsPerMinute: paces[step-2], randomize: false}]" :factors="{}" @pacerFinished="pacerFinished" @pacerStopped="pacerStopped" />
             </div>
