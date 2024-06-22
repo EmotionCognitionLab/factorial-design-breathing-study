@@ -106,7 +106,7 @@ const deleteAll = async (userId) => {
     try {
         const tableDetails = [
             {name: sessionsTable, sortKey: 'startDateTime'}, 
-            {name: earningsTable, sortKey: 'typeDate'}
+            {name: earningsTable, sortKey: 'dateType'}
         ];
     
         const params = {
