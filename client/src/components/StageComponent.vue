@@ -260,6 +260,7 @@ function quit() {
     display: none;
 }
 .emoPic {
-    margin-left: -380px;
+    margin-left: -240px;
+    width: 1100px;
 }
 </style>
