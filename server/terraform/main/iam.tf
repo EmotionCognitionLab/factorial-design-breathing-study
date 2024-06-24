@@ -357,7 +357,7 @@ resource "aws_iam_role" "lambda-sqlite-process" {
     aws_iam_policy.dynamodb-write-all-sessions.arn,
     aws_iam_policy.dynamodb-earnings-read.arn,
     aws_iam_policy.dynamodb-earnings-write.arn,
-    aws_iam_policy.dynamodb-user-read.arn
+    aws_iam_policy.dynamodb-user-read-write.arn,
   ]
 }
 
