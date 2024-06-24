@@ -162,21 +162,17 @@ functions:
     events:
       - schedule:
           name: "${self:service}-${self:provider.stage}-home-training-11am-email-reminder"
-          rate: cron(0 19 * * ? *)
+          rate: cron(0 18 * * ? *)
           input:
-            commType: email
-            reminderType: homeTraining.morning
+            reminderType: homeTraining
       - schedule:
-          name: "${self:service}-${self:provider.stage}-home-training-8pm-sms-reminder"
-          rate: cron(0 4 * * ? *)
+          name: "${self:service}-${self:provider.stage}-home-training-7pm-sms-reminder"
+          rate: cron(0 2 * * ? *)
           input:
-            commType: email
-            reminderType: homeTraining.evening
+            reminderType: homeTraining
     environment:
       REGION: ${self:provider.region}
-      EMAIL_SENDER: "uscemotioncognitionlab@gmail.com"
       SNS_ENDPOINT: "https://sns.${self:provider.region}.amazonaws.com"
-      SES_ENDPOINT: "https://email.${self:provider.region}.amazonaws.com"
     role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/dynamodb/sns/ses}
     package:
       patterns:
