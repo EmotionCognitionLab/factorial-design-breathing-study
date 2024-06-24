@@ -64,6 +64,22 @@ export default class Db {
         }
     }
 
+    async getActiveUsers() {
+        try {
+            const params = {
+                TableName: this.usersTable,
+                FilterExpression: 'progress.#status.active = :true',
+                ExpressionAttributeNames: { '#status': 'status' },
+                ExpressionAttributeValues: { ':true': true }
+            }
+            const dynResults = await this.scan(params);
+            return dynResults.Items;
+        } catch (err) {
+            this.logger.error(err);
+            throw err;
+        }
+    }
+
     async getInProgressUsers() {
         try {
             const params = {
@@ -117,6 +133,25 @@ export default class Db {
                 params['FilterExpression'] = 'stage = :stage';
                 params['ExpressionAttributeValues'][':stage'] = stage;
             }
+
+            const results = await this.query(params);
+            return results.Items;
+        } catch (err) {
+            this.logger.error(err);
+            throw err;
+        }
+    }
+
+    async sessionsForUser(userId, startDate = new Date(0), endDate = new Date(1000 * 60 * 60 * 24 * 365 * 1000), stage = 2) {
+        const startDateEpoch = Math.floor(startDate.getTime() / 1000);
+        const endDateEpoch = Math.floor(endDate.getTime() / 1000);
+        try {
+            const params = {
+                TableName: this.sessionsTable,
+                KeyConditionExpression: 'userId = :uId and startDateTime between :st and :et',
+                FilterExpression: 'stage = :stage',
+                ExpressionAttributeValues: { ':uId': userId, ':st': startDateEpoch, ':et': endDateEpoch, ':stage': stage }
+            };
 
             const results = await this.query(params);
             return results.Items;
