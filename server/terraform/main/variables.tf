@@ -27,6 +27,11 @@ variable "error-notification-emails" {
     sensitive = true
 }
 
+variable "redcap-api-token" {
+    description = "API token for accessing REDCap"
+    sensitive = true
+}
+
 variable "data-bucket" {
     description =  "S3 bucket for participant data"
 }

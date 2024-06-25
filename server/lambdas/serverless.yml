@@ -191,6 +191,19 @@ functions:
       patterns:
         - 'register/*.js'
 
+  fetch-rc-user:
+    handler: register/register.fetchRedcap
+    events:
+      - httpApi:
+          path: /register/fetch-rc/{rcid}
+          method: GET
+    environment:
+      TOKEN: ${ssm:/${self:service}/${self:provider.stage}/info/redcap/token}
+    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/unregistered}
+    package:
+      patterns:
+        - 'register/*.js'
+
 layers:
   BetterSqlite3:
     path: 'better-sqlite3-layer/layer'
