@@ -213,7 +213,7 @@ function saveEmWaveSessionData() {
 
 async function showEndOfSessionText() {
     const completeSessionCount = stage2Sessions.filter(s => s.durationSeconds >= maxSessionMinutes * 60).length
-    if (completeSessionCount <= 1) {
+    if (completeSessionCount < 1) {
         // then show the end-of-first-session text and we're done
         showFirstSessionPostUploadText.value = true;
         return
