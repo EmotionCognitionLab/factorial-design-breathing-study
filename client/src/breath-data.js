@@ -134,7 +134,7 @@ function saveEmWaveSessionData(emWaveSessionId, avgCoherence, pulseStartTime, va
 }
 
 function getEmWaveSessionsForStage(stage) {
-    const stmt = db.prepare('SELECT emwave_session_id from emwave_sessions where stage = ?');
+    const stmt = db.prepare('SELECT * from emwave_sessions where stage = ?');
     const res = stmt.all(stage);
     const resObjs = res.map(rowToObject).map(s => {
         s['emWaveSessionId'] = s['emwaveSessionId'];
