@@ -3,6 +3,9 @@
         <div class="instruction" :class="{hidden: reloadNeeded || hasSeenInstructions}">
             <div>
                 <p>
+                    Welcome! Let's begin your first breathing practice.
+                </p>
+                <p>
                     Throughout your session, you will see a "coherence” score. This score shows whether your body is relaxed, according to your heart rate.  The higher the score the better!
                 </p>
                 <p>
