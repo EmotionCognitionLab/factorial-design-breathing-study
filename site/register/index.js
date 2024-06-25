@@ -9,6 +9,13 @@ async function init() {
     await l.init();
     hideError();
 
+    const query = new URLSearchParams(window.location.search.substring(1));
+    const rcid = query.get('rcid');
+    if (!rcid || rcid === '') {
+        showError('No REDCap ID found. Unable to continue.');
+        return;
+    }
+
     const fakeSession = {
         getIdToken: () => ({
             getJwtToken: () => ""
@@ -16,7 +23,7 @@ async function init() {
     };
     const client = new ApiClient(fakeSession);
 
-    document.getElementById("emailConfirm").addEventListener('paste', async (event) => {
+    document.getElementById("passwordConfirm").addEventListener('paste', async (event) => {
         event.preventDefault();
         return false;
     });
@@ -36,30 +43,14 @@ async function init() {
         const userId = window.sessionStorage.getItem("userId");
         await resendSignUpConfirmationCode(userId);
     });
-
-    showRegForm();
+    const rcUserInfo = await client.fetchRedcapUserInfo(rcid);
+    showRegForm(rcUserInfo.email, rcUserInfo.phone, rcUserInfo.first_name, rcUserInfo.last_name);
 }
 
 function registrationFormIsValid() {
     let isValid = true;
 
     const email = document.getElementById("email");
-    const emailConfirm = document.getElementById("emailConfirm");
-    const emailErr = document.querySelector("#emailConfirm + span.error");
-    if (email.validity.valid) {
-        if (email.value === emailConfirm.value) {
-            emailErr.textContent = "";
-            emailErr.className = "error hidden";
-        } else {
-            emailErr.textContent = "Both email addresses must be the same.";
-            emailErr.className = "error";
-            isValid = false;
-        }
-    } else {
-        emailErr.textContent = "Please enter a valid email address.";
-        emailErr.className = "error";
-        isValid = false;
-    }
 
     const phone = document.getElementById("phone");
     const phoneErr = document.querySelector("#phone + span.error");
@@ -81,10 +72,17 @@ function registrationFormIsValid() {
     }
 
     const password = document.getElementById("password");
-    const passErr = document.querySelector("#password + span.error");
+    const passwordConfirm = document.getElementById("passwordConfirm");
+    const passErr = document.querySelector("#passwordConfirm + span.error");
     if (password.validity.valid) {
-        passErr.textContent = "";
-        passErr.className = "error hidden";
+        if (password.value === passwordConfirm.value) {
+            passErr.textContent = "";
+            passErr.className = "error hidden";
+        } else {
+            passErr.textContent = "Both passwords must be the same.";
+            passErr.className = "error";
+            isValid = false;
+        }
     } else {
         if (password.validity.valueMissing)  {
             passErr.textContent = "You must enter a password.";
@@ -158,15 +156,17 @@ async function verifyPhone() {
     }
 }
 
-function showRegForm() {
+function showRegForm(email, phone, firstName, lastName) {
     document.getElementById("loading").classList.add("hidden");
     document.getElementById("registration-form").classList.remove("hidden");
+    document.getElementById("name").value = `${firstName} ${lastName}`;
+    document.getElementById("email").value = email;
+    document.getElementById("phone").value = phone;
 }
  
 function showError(errMsg) {
     const errDiv = document.getElementById("errors");
-    errDiv.innerHTML = `Something has gone wrong. Please contact the study administrator at uscheartbeam@gmail.com
-    and give them your name, email address, and the following error message: ${errMsg}`;
+    errDiv.innerHTML = `Something has gone wrong. Please ask the researcher for assistance. Error message: ${errMsg}`;
     errDiv.classList.remove("hidden");
 }
 

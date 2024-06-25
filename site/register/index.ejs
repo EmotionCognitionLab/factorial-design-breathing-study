@@ -11,24 +11,22 @@
             <p class="header">Thanks for participating in the breathing study! Let's get you set up with an account:</p>
             <form novalidate>
                 <label for="name">Name:</label>
-                <input type="text" name="name" id="name" value="" /> <br/>
+                <input type="text" name="name" id="name" value="" disabled/> <br/>
                 <label for="email">Email:</label>
-                <input type="email" name="email" id="email" value="" /> <br/>
-                <p>
-                    <label for="emailConfirm">Confirm email:</label>
-                        <input type="email" name="emailConfirm" id="emailConfirm" value="" />
-                        <span class="error hidden"></span>
-                    </label>
-                </p>
+                <input type="email" name="email" id="email" value="" disabled /> <br/>
+                        
                 <p>
                     <label for="phone">Phone (with area code):
-                        <input type="text" name="phone" id="phone" minlength="10" pattern="[\-0-9 \)\(]+" required placeholder="A validation code will be sent to this number" value="" />
+                        <input type="text" name="phone" id="phone" minlength="10" pattern="[\-0-9 \)\(]+" required placeholder="A validation code will be sent to this number" disabled value="" />
                         <span class="error hidden"></span>
                     </label>
                 </p>
+                <label for="password">Password:</label>
+                <input type="password" name="password" id="password" minlength="12" placeholder="Minimum 12 characters" required value="" />
+                <span class="error hidden"></span>
                 <p>
-                    <label for="password">Password:
-                        <input type="password" name="password" id="password" minlength="12" placeholder="Minimum 12 characters" required value="" />
+                    <label for="passwordConfirm">Confirm Password:</label>
+                        <input type="password" name="passwordConfirm" id="passwordConfirm" minlength="12" placeholder="Minimum 12 characters" required value="" />
                         <span class="error hidden"></span>
                     </label>
                 </p>
