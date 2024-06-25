@@ -30,7 +30,7 @@
                     Pause your breathing when the ball is not going up or down.
                     Make sure you have the pulse device attached to your ear, and click the "Start" button on the next screen when you're ready to begin.
                 </p>
-                <button @click="step=2">Continue</button>
+                <button @click="beginSession()">Continue</button>
             </div>
             <div v-if="step == 2">
                 <div v-if="showEmoPic">
@@ -175,6 +175,12 @@ onBeforeMount(async() => {
 async function instructionsRead() {
     await window.mainAPI.setKeyValue('hasSeenInstructions', 'true')
     hasSeenInstructions.value = true
+}
+
+async function beginSession() {
+    // prevent them from jumping to look at earnings from here on out
+    await window.mainAPI.disableMenus()
+    step.value=2
 }
 
 async function pacerFinished() {
