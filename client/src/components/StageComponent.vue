@@ -294,12 +294,14 @@ function quit() {
 .left-col li {
     padding-top: 15px;
 }
+.right-col {
+    max-height: 80vh;
+}
 .right-col img {
     max-width: 100%;
-    max-height: 80vh;
 }
 .img-instructions {
     width: 100vw;
-    margin-left: -70%;
+    margin-left: -62%;
 }
 </style>
