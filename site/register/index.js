@@ -43,8 +43,12 @@ async function init() {
         const userId = window.sessionStorage.getItem("userId");
         await resendSignUpConfirmationCode(userId);
     });
-    const rcUserInfo = await client.fetchRedcapUserInfo(rcid);
-    showRegForm(rcUserInfo.email, rcUserInfo.phone, rcUserInfo.first_name, rcUserInfo.last_name);
+    try {
+        const rcUserInfo = await client.fetchRedcapUserInfo(rcid);
+        showRegForm(rcUserInfo.email, rcUserInfo.phone, rcUserInfo.first_name, rcUserInfo.last_name);
+    } catch (err) {
+        showError(err.message);
+    }
 }
 
 function registrationFormIsValid() {
