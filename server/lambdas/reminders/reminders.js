@@ -2,7 +2,7 @@
 'use strict';
 
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
-import { dynamoDocClient as docClient } from '../common/aws-clients';
+import { dynamoDocClient as docClient } from '../common/aws-clients.js';
 
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
