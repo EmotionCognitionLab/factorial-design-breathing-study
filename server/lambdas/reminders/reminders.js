@@ -2,6 +2,7 @@
 'use strict';
 
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
+import { dynamoDocClient as docClient } from '../common/aws-clients';
 
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
@@ -29,6 +30,7 @@ const homeTrainingMsgs = [
 
 const sns = new SNSClient({endpoint: snsEndpoint, apiVersion: '2010-03-31', region: region});
 const db = new Db();
+db.docClient = docClient;
 
 export async function handler (event) {
     const reminderType = event.reminderType;

@@ -68,9 +68,9 @@ export default class Db {
         try {
             const params = {
                 TableName: this.usersTable,
-                FilterExpression: 'progress.#status.active = :true',
+                FilterExpression: 'progress.#status = :active',
                 ExpressionAttributeNames: { '#status': 'status' },
-                ExpressionAttributeValues: { ':true': true }
+                ExpressionAttributeValues: { ':active': 'active' }
             }
             const dynResults = await this.scan(params);
             return dynResults.Items;
