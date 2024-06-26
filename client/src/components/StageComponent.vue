@@ -1,6 +1,6 @@
 <template>
     <div>
-        <div class="instruction" :class="{hidden: reloadNeeded || hasSeenInstructions}">
+        <div class="instruction" :class="{hidden: reloadNeeded || doneForToday || hasSeenInstructions}">
             <div>
                 <p>
                     Welcome! Let's begin your first breathing practice.
@@ -104,6 +104,10 @@
             <br/>
             <button class="button" @click="quit">Quit</button>
         </div>
+
+        <div class="instruction" :class="{hidden: !doneForToday}">
+            You're all finished with your training today. Please come back tomorrow to train again!
+        </div>
     </div>
 </template>
 <script setup>
@@ -165,6 +169,11 @@ onBeforeMount(async() => {
         
         const minutesDoneToday = await window.mainAPI.getEmWaveSessionMinutesForDayAndStage(new Date(), 2)
         const remainingMinutes = (2 * maxSessionMinutes) - minutesDoneToday
+        if (remainingMinutes < 1) {
+            doneForToday.value = true
+            return
+        }
+        
         sessionDurationMs.value = Math.min(maxSessionMinutes, remainingMinutes) * 60 * 1000
 
         dateCheckInterval = setInterval(() => {
