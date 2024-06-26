@@ -296,6 +296,7 @@ function quit() {
 }
 .right-col img {
     max-width: 100%;
+    max-height: 80vh;
 }
 .img-instructions {
     width: 100vw;
