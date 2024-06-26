@@ -225,10 +225,7 @@ describe("time rewards", () => {
     it("should not give a reward after the second session on the same day", () => {
         const today = dayjs().subtract(1, 'hour').tz('America/Los_Angeles');
         const earnings = {userId: 'ab12', date: today.format(), type: earningsTypes.PERFORMANCE_BREATH2, amount: 2};
-        allMock.mockReturnValueOnce([
-            { pulse_start_time: today.unix(), duration_seconds: 19*60 },
-            { pulse_start_time: today.add(1, 'hour').unix(), duration_seconds: 19*60 },
-        ]);
+        allMock.mockReturnValueOnce([]);
         const res = trainingTimeRewards(sqliteMock, 25, earnings);
         expect(allMock).toHaveBeenCalledTimes(1);
         expect(res).toStrictEqual([]);

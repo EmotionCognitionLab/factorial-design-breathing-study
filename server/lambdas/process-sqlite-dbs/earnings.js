@@ -62,15 +62,12 @@ export const trainingTimeRewards = (sqliteDb, condition, latestTimeEarnings) => 
     for (const res of results) {
         let earningsForDay = trainingTimeEarningsForDay(res.minutes, condition);
         const earningsDay = dayjs.tz(res.day, 'YYYY-MM-DD', 'America/Los_Angeles');
-        if (startDay.isSameOrAfter(earningsDay, 'day')) { // shouldn't happen, but double-check
-            // make sure we don't double-pay anything
-            if (latestTimeEarnings?.type == earningsTypes.COMPLETION_BREATH2 || latestTimeEarnings?.type == earningsTypes.PERFORMANCE_BREATH2) {
-                earningsForDay = [];
-            }
-            if (latestTimeEarnings?.type == earningsTypes.BREATH1) {
-                earningsForDay = earningsForDay.filter(e => e !== earningsTypes.BREATH1)
-            }
-        }
+        // make sure we aren't double-paying for the first session while processing the second
+        earningsForDay = earningsForDay.filter(e => {
+            if (!latestTimeEarnings) return true;
+            return `${earningsDay.format()}|${e}` !== `${latestTimeEarnings.date}|${latestTimeEarnings.type}`
+        });
+        
         for (const earningsType of earningsForDay) {
             newEarnings.push({day: earningsDay.format(), earnings: earningsType})
         }

@@ -99,7 +99,7 @@ describe("Processing a sqlite file", () => {
 
     it("should only save time-based earnings for sessions after the last time-based earning", async () => {
         const lastEarningsTime = dayjs().tz('America/Los_Angeles').subtract(2, 'days');
-        const prevEarnings = [{userId: theUserId, date: lastEarningsTime.format(), type: earningsTypes.BREATH1, amount: earningsAmounts[earningsTypes.BREATH1]}];
+        const prevEarnings = [{userId: theUserId, date: lastEarningsTime.startOf('day').format(), type: earningsTypes.BREATH1, amount: earningsAmounts[earningsTypes.BREATH1]}];
         mockGetUserEarnings.mockReturnValueOnce(prevEarnings);
 
         const sessions = [
