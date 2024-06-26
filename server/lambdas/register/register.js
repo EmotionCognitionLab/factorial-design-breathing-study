@@ -16,6 +16,7 @@ exports.fetchRedcap = async (event) => {
         'type': 'flat',
         'records': rcid,
         'fields': 'first_name, last_name, email, phone',
+        'events': 'participant_info_arm_1',
         'returnContent': 'count',
         'rawOrLabel': 'raw',
         'rawOrLabelHeaders': 'raw',
