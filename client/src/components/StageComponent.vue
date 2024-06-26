@@ -19,17 +19,26 @@
             </div>
         </div>
         <div :class="{hidden: reloadNeeded || sessionDone || doneForToday || !hasSeenInstructions}">
-            <div class="instructions" v-if="step == 1">
-                <p>
-                    Please start by attaching your pulse sensor to your ear and to the computer. Please remember to sit on a chair with your feet flat on the floor and hands resting on your legs for this breathing practice.
-                </p>
-                <img :src="seatedIcon" />
-                <p>
-                    Please breathe following the breath pacer on the screen.
-                    Breathe in while the ball is moving up and breathe out while the ball is moving down.
-                    Pause your breathing when the ball is not going up or down.
-                    Make sure you have the pulse device attached to your ear, and click the "Start" button on the next screen when you're ready to begin.
-                </p>
+            <div class="img-instructions" v-if="step == 1">
+                <div class="header">
+                    <h2>Get ready for your breathing session!</h2>
+                </div>
+                <div class="container">
+                    <div class="left-col">
+                        <h3>
+                            <ul>
+                                <li>Sit on a chair with your feet flat on the floor.</li>
+                                <li>Attach the ear sensor to your ear.</li>
+                                <li>Rest your hands in your lap.</li>
+                                <li>Following the ball pacer, breathe in as the ball goes up and breathe out as it goes down.</li>
+                                <li>Breathe in through your nose and breathe out through your nose or mouth.</li>
+                            </ul>
+                        </h3>
+                    </div>
+                    <div class="right-col">
+                        <img :src="seatedIcon"/>
+                    </div>
+                </div>
                 <button @click="beginSession()">Continue</button>
             </div>
             <div v-if="step == 2">
@@ -271,5 +280,25 @@ function quit() {
 .emoPic {
     margin-left: -240px;
     width: 1100px;
+}
+.container {
+    display: flex;
+    flex-wrap: wrap;
+}
+.left-col, .right-col {
+    width: 50%;
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: left !important;
+}
+.left-col li {
+    padding-top: 15px;
+}
+.right-col img {
+    max-width: 100%;
+}
+.img-instructions {
+    width: 100vw;
+    margin-left: -70%;
 }
 </style>
