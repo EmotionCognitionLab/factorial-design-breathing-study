@@ -45,7 +45,7 @@ async function init() {
     });
     try {
         const rcUserInfo = await client.fetchRedcapUserInfo(rcid);
-        showRegForm(rcUserInfo.email, rcUserInfo.phone, rcUserInfo.first_name, rcUserInfo.last_name);
+        showRegForm(rcUserInfo.email, rcUserInfo.phone, rcUserInfo.first_name, rcUserInfo.last_name, rcid);
     } catch (err) {
         showError(err.message);
     }
@@ -127,13 +127,9 @@ async function registerUser(client) {
     const name = document.getElementById("name").value;
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
-    let notifyPref;
-    const notifyOptions = document.querySelectorAll('input[name="notifyPref"]'); 
-    notifyOptions.forEach(o => {
-        if (o.checked) notifyPref = o.value;
-    });
+    const rcid = document.getElementById("rcid").value;
     try {
-        const resp = await client.registerUser(name, email, phone, password, notifyPref);
+        const resp = await client.registerUser(name, email, phone, password, rcid);
         const userId = resp.sub;
         window.sessionStorage.setItem("userId", userId);
         document.getElementById("registration-form").classList.add("hidden");
@@ -160,12 +156,13 @@ async function verifyPhone() {
     }
 }
 
-function showRegForm(email, phone, firstName, lastName) {
+function showRegForm(email, phone, firstName, lastName, rcid) {
     document.getElementById("loading").classList.add("hidden");
     document.getElementById("registration-form").classList.remove("hidden");
     document.getElementById("name").value = `${firstName} ${lastName}`;
     document.getElementById("email").value = email;
     document.getElementById("phone").value = phone;
+    document.getElementById("rcid").value = rcid;
 }
  
 function showError(errMsg) {
