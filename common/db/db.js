@@ -20,7 +20,6 @@ export default class Db {
         this.userPoolId = options.userPoolId || awsSettings.UserPoolId;
         this.earningsTable = options.earningsTable || awsSettings.EarningsTable;
         this.usersTable = options.usersTable || awsSettings.UsersTable;
-        this.segmentsTable = options.segmentsTable || awsSettings.SegmentsTable;
         this.sessionsTable = options.sessionsTable || awsSettings.SessionsTable;
         this.session = options.session || null;
         if (!options.session) {
@@ -96,29 +95,6 @@ export default class Db {
             };
             const dynResults = await this.scan(params);
             return dynResults.Items;
-        } catch (err) {
-            this.logger.error(err);
-            throw err;
-        }
-    }
-
-    async segmentsForUser(userId, stage=null, startDate = new Date(0), endDate = new Date(1000 * 60 * 60 * 24 * 365 * 1000)) {
-        const startDateEpoch = Math.floor(startDate.getTime() / 1000);
-        const endDateEpoch = Math.floor(endDate.getTime() / 1000);
-        try {
-            const params = {
-                TableName: this.segmentsTable,
-                KeyConditionExpression: 'userId = :uId and endDateTime between :st and :et',
-                ExpressionAttributeValues: { ':uId': userId, ':st': startDateEpoch, ':et': endDateEpoch }
-            };
-
-            if (stage !== null) {
-                params['FilterExpression'] = 'stage = :stage';
-                params['ExpressionAttributeValues'][':stage'] = stage;
-            }
-
-            const results = await this.query(params);
-            return results.Items;
         } catch (err) {
             this.logger.error(err);
             throw err;
