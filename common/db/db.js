@@ -81,24 +81,6 @@ export default class Db {
         }
     }
 
-    async getInProgressUsers() {
-        try {
-            const params = {
-                TableName: this.usersTable,
-                FilterExpression: `attribute_not_exists(progress) or ( attribute_exists(progress) and 
-                (attribute_not_exists(progress.dropped) or progress.dropped = :null) and
-                (attribute_not_exists(progress.stage3Complete) or progress.stage3Complete = :null) )
-                `,
-                ExpressionAttributeValues: {':null': null}
-            };
-            const dynResults = await this.scan(params);
-            return dynResults.Items;
-        } catch (err) {
-            this.logger.error(err);
-            throw err;
-        }
-    }
-
     /**
      * 
      * @param {string} visit2ScheduledDate A YYYY-MM-DD string indicating the visit 2 scheduled date
