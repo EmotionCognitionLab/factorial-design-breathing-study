@@ -21,6 +21,7 @@ export default class Db {
         this.earningsTable = options.earningsTable || awsSettings.EarningsTable;
         this.usersTable = options.usersTable || awsSettings.UsersTable;
         this.segmentsTable = options.segmentsTable || awsSettings.SegmentsTable;
+        this.sessionsTable = options.sessionsTable || awsSettings.SessionsTable;
         this.session = options.session || null;
         if (!options.session) {
             const dynClient = new DynamoDBClient({region: this.region});
