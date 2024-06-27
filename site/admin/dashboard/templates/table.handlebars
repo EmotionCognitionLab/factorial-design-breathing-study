@@ -1,18 +1,8 @@
-{{#*inline "dated-checkbox"}}
-    <label>
-        <input type="checkbox" data-key="{{this.key}}" {{#if this.checked}}checked{{/if}}>
-        <span>{{this.displayDate}}</span>
-    </label>
-{{/inline}}
 
 {{#each users}}
 <tr data-user-id="{{this.userId}}" {{#if this.inactive}}data-inactive="true" class="hidden"{{/if}}>
     <td><div class="username">{{this.name}}</div></td>
-    <td class="edit-cell" contenteditable="true">{{this.participantId}}</td>
-    <td class="start-date">Loading...</td>
-    <td class="status2">Loading...</td>
-    <td class="status3">Loading...</td>
-    <td>{{> dated-checkbox this.dropped}}</td>
+    <td class="status">Loading...</td>
 </tr>
 
 {{/each}}

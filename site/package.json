@@ -11,7 +11,7 @@
   "dependencies": {
     "api": "file:../common/api",
     "auth": "file:../common/auth",
-    "dayjs": "^1.11.7",
+    "dayjs": "^1.11.11",
     "db": "file:../common/db",
     "handlebars": "^4.7.8",
     "logger": "file:../common/logger",

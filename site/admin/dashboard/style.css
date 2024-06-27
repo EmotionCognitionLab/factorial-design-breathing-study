@@ -36,18 +36,9 @@ td label input {
     top: -2px;
 }
 
-progress {
-    width: 80px;
-    margin: 5px;
-}
-
 label {
     display: inline-block;
     overflow: hidden;
-    /*
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    */
 }
 
 .error {
@@ -130,4 +121,34 @@ label {
     font-size: 30px;
     top: -10px;
     right: -10px;
+}
+
+.pay-info {
+    margin-top: 20px;
+}
+
+.dot {
+    height: 15px;
+    width: 15px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 10px;
+}
+.red {
+    background-color: red;
+}
+.yellow {
+    background-color: yellow;
+}
+.green {
+    background-color: green;
+}
+.gray {
+    background-color: gray;
+}
+.blue {
+    background-color: blue;
+}
+.empty {
+    border-color: black;
 }
