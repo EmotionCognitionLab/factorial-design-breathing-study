@@ -37,6 +37,16 @@ resource "aws_cognito_user_pool" "pool" {
           max_length = 50
       }
     }
+    schema {
+      attribute_data_type = "String"
+      name = "profile"
+      required = false
+      mutable = false
+      string_attribute_constraints {
+        min_length = 1
+        max_length = 50
+      }
+    }
     username_attributes = [ "phone_number" ]
     username_configuration {
       case_sensitive = false
@@ -83,8 +93,8 @@ resource "aws_cognito_user_pool_client" "client" {
     default_redirect_uri = "${var.cognito-redirect-uri}"
     logout_urls = "${var.cognito-logout-url}"
     supported_identity_providers = [ "COGNITO" ]
-    read_attributes = ["email", "name", "phone_number", "phone_number_verified"]
-    write_attributes = ["email", "name", "phone_number"]
+    read_attributes = ["email", "name", "phone_number", "phone_number_verified", "profile"]
+    write_attributes = ["email", "name", "phone_number", "profile"]
 }
 output "cognito_pool_client_id" {
     value = aws_cognito_user_pool_client.client.id
