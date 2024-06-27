@@ -304,7 +304,7 @@ function quit() {
     padding-top: 15px;
 }
 .right-col {
-    max-height: 80vh;
+    max-height: 72vh;
 }
 .right-col img {
     max-width: 100%;
