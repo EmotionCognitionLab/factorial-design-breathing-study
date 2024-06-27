@@ -30,7 +30,7 @@ exports.handler = async(event) => {
     }
 
     if (path === "/admin/participants/active") {
-        return await db.getInProgressUsers();
+        return await db.getActiveUsers();
     }
 
     if (path.startsWith("/admin/participant/")) {
@@ -63,23 +63,32 @@ exports.handler = async(event) => {
 }
 
 /**
- * Returns object with fields startDate, status2 (number of stage 2 segments done), status3 (number of stage 3 segments done).
+ * Returns object with fields recentMinutes (total training minutes in last three days), recentSessionCount (total completed sessions in last three days), latestCompleteSession (data of most recent completed session).
  * @param {string} participantId 
  * @param {*} db 
- * @returns {{startDate: string, status2: number, status3: number}}
+ * @returns {{recentMinutes: number, recentSessionCount: number, latestCompleteSession: string}}
  */
 async function getUserStatus(participantId, db) {
-    const stage2Segments = await db.segmentsForUser(participantId, 2);
-    if (stage2Segments.length == 0) return {startDate: 'N/A', status2: 0, status3: 0};
-
-    // segments are returned sorted by endDateTime, so the  first one is when they started stage 2
-    const startDate = dayjs.unix(stage2Segments[0].endDateTime).tz('America/Los_Angeles').format('MM-DD-YYYY');
-
-    // TODO should we fetch stage 3 segments even if they don't appear to have completed stage 2?
-    if (stage2Segments.length < 12) return {startDate: startDate, status2: stage2Segments.length, status3: 0};
-
-    const stage3Segments = await db.segmentsForUser(participantId, 3);
-    return {startDate: startDate, status2: stage2Segments.length, status3: stage3Segments.length};
+    const sessions = await db.sessionsForUser(participantId);
+    const today = dayjs().tz('America/Los_Angeles');
+    // status is based on past three days, starting yesterday
+    const statusStart = today.subtract(4, 'days').startOf('day');
+    const statusEnd = today.subtract(1, 'days').endOf('day');
+    
+    const recentSessions = sessions.filter(s => s.startDateTime >= statusStart.unix() && s.startDateTime <= statusEnd.unix())
+    let totalMinutes = 0;
+    let completeSessionCount = 0;
+    for (const s of recentSessions) {
+        totalMinutes += Math.round(s.durationSeconds / 60);
+        if (s.isComplete) completeSessionCount += 1;
+    }
+    // sessions should already be sorted in ascending order by startDateTime
+    const latestCompleteSession = sessions.findLast(s => s.isComplete);
+    let latestCompleteSessionDate = 'N/A';
+    if (latestCompleteSession) {
+        latestCompleteSessionDate = dayjs.unix(latestCompleteSession.startDateTime).tz('America/Los_Angeles').format('MM/DD/YYYY');
+    }
+    return { recentMinutes: totalMinutes, recentSessionCount: completeSessionCount, latestCompleteSession: latestCompleteSessionDate };
 }
 
 async function credentialsForRole(roleArn) {
