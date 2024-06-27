@@ -17,7 +17,8 @@
         "name": "Pat",
         "phone_number_verified": "false",
         "phone_number": "+11234567890",
-        "email": "pat@example.com"
+        "email": "pat@example.com",
+        "profile": "1234"
       }
     },
     "response": {}

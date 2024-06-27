@@ -57,6 +57,7 @@ describe("Testing with a valid post confirmation trigger event", () => {
         for (const field in ['email', 'name', 'phone_number', 'sub']) {
             expect(userRec.Item[field]).toBe(postConfirmationEvent.request.userAttributes[field]);
         }
+        expect(userRec.Item['rcid']).toBe(postConfirmationEvent.request.userAttributes['profile']);
         const now = new Date().toISOString().substring(0, 18)
         expect(userRec.Item.createdAt.substring(0, 18)).toBe(now);
         expect(userRec.Item.phone_number_verified).toBeFalsy();

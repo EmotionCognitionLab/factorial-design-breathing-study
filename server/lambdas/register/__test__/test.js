@@ -34,6 +34,11 @@ describe("signUp", () => {
         await testSignUp(event, 400, "One or more required parameters are missing.", 0);
     });
 
+    it("should return an error if there is no rcid", async() => {
+        const event = buildSignUpEvent("+12125551234", "twelvechars!!", "name here", "nobody@example.com", null);
+        await testSignUp(event, 400, "One or more required parameters are missing.", 0);
+    });
+
     it("should return an error if the email address is not valid", async() => {
         const event = buildSignUpEvent("+12125551234", "twelvechars!!", "name here", "noemail");
         await testSignUp(event, 400, "You must enter a valid email address.", 0);
@@ -66,14 +71,14 @@ describe("signUp", () => {
 
 });
 
-function buildSignUpEvent(phone, password, name="Nobody", email="nobody@example.com", notifyPref="email") {
+function buildSignUpEvent(phone, password, name="Nobody", email="nobody@example.com", rcid="1234") {
     return {
         body: JSON.stringify({
             phone: phone,
             password: password,
             name: name,
             email: email, 
-            notifyPref: notifyPref
+            rcid: rcid
         })
     };
 }

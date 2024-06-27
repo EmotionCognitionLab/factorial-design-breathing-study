@@ -100,13 +100,14 @@ export default class ApiClient {
         return await this.doFetch(url, "get", `There was an error getting the status for user ${userId}`);
     }
 
-    async registerUser(name, email, phone, password) {
+    async registerUser(name, email, phone, password, rcid) {
         const url = `${awsSettings.RegistrationApiUrl}`;
         const params = {
             name: name,
             email: email,
             phone: phone,
-            password: password
+            password: password,
+            rcid: rcid
         };
         return await this.doFetch(url, "post", "An error occurred during registration", params);
     }

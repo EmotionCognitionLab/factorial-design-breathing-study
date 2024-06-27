@@ -86,7 +86,8 @@ exports.signUp = async (event) => {
         const phone = props.phone;
         const name = props.name;
         const email = props.email;
-        for (const i of [password, phone, name, email]) {
+        const rcid = props.rcid;
+        for (const i of [password, phone, name, email, rcid]) {
             if (!i || i.trim().length == 0) {
                 return errResponse(400, "One or more required parameters are missing.");
             }
@@ -119,6 +120,10 @@ exports.signUp = async (event) => {
                 {
                     Name: "phone_number",
                     Value: phone
+                },
+                {
+                    Name: "profile",
+                    Value: rcid
                 }
             ]
         }

@@ -65,6 +65,7 @@ async function buildUserRecord(event) {
             email: event.request.userAttributes["email"],
             phone_number: event.request.userAttributes["phone_number"],
             phone_number_verified: event.request.userAttributes["phone_number_verified"] === 'true',
+            rcid: event.request.userAttributes["profile"],
             createdAt: new Date().toISOString()
         }
     };
