@@ -36,17 +36,16 @@ export class Payboard {
                 const earnType = curEarn.type;
                 if (earnType === earningsTypes.VISIT_1 || earnType === earningsTypes.VISIT_2) {
                     dayData['visits'] = (dayData['visits'] || 0) + curEarn.amount;
-                } else if (earnType === earningsTypes.BREATH1) {
+                } else if (earnType === earningsTypes.BREATH1 || earnType === earningsTypes.PERFORMANCE_BREATH2) {
                     dayData['sessions'] = (dayData['sessions'] || 0) + curEarn.amount;
-                } else if (earnType === earningsTypes.PERFORMANCE_BREATH2) {
-                    // participants get $8 for PERFORMANCE_BREATH2, but $4 of 
+                } else if (earnType === earningsTypes.COMPLETION_BREATH2) {
+                    // participants get $8 for COMPLETION_BREATH2, but $4 of 
                     // that is considered normal session pay and half is a bonus
                     // for doing two sessions in a day
                     dayData['sessions'] = (dayData['sessions'] || 0) + curEarn.amount / 2;
                     dayData['bonuses'] = (dayData['bonuses'] || 0) + curEarn.amount / 2;
                 } else if (earnType === earningsTypes.TOP_25 ||
                     earnType === earningsTypes.TOP_66 ||
-                    earnType === earningsTypes.COMPLETION_BREATH2 ||
                     earnType === earningsTypes.STREAK_BONUS
                 ) {
                     dayData['bonuses'] = (dayData['bonuses'] || 0) + curEarn.amount;

@@ -1,4 +1,4 @@
-import { earningsTypes } from "../../types/types.js";
+import { earningsTypes, earningsAmounts } from "../../types/types.js";
 import { Payboard } from "../pay-info.js";
 
 const mockClient = (earnings) => ({
@@ -8,25 +8,37 @@ const mockClient = (earnings) => ({
 
 function earningsToRows(earnings) {
     const data = {};
+    let overallTotal = 0;
 
     for (let i=0; i<earnings.length; i++) {
         const curEarn = earnings[i];
-        const dayData = data[curEarn.date] || {};
+        overallTotal += curEarn.amount;
+        const ymdDate = curEarn.date.substring(0, 10);
+        const dayData = data[ymdDate] || {};
         const earnType = curEarn.type;
-        if (earnType === earningsTypes.BREATH1) {
-            dayData['session1Earned']= curEarn.amount;
-        } else if (earnType === earningsTypes.BREATH2) {
-            dayData['session2Earned']= curEarn.amount;
-        } else if (earnType === earningsTypes.STREAK_BONUS1 || earnType === earningsTypes.STREAK_BONUS2) {
-            dayData['streakBonus']= curEarn.amount;
+        if (earnType === earningsTypes.VISIT_1 || earnType === earningsTypes.VISIT_2) {
+            dayData['visits'] = (dayData['visits'] || 0) + curEarn.amount;
+        } else if (earnType === earningsTypes.BREATH1 || earnType === earningsTypes.PERFORMANCE_BREATH2) {
+            dayData['sessions'] = (dayData['sessions'] || 0) + curEarn.amount;
+        } else if (earnType === earningsTypes.COMPLETION_BREATH2) {
+            // participants get $8 for COMPLETION_BREATH2, but $4 of 
+            // that is considered normal session pay and half is a bonus
+            // for doing two sessions in a day
+            dayData['sessions'] = (dayData['sessions'] || 0) + curEarn.amount / 2;
+            dayData['bonuses'] = (dayData['bonuses'] || 0) + curEarn.amount / 2;
+        } else if (earnType === earningsTypes.TOP_25 ||
+            earnType === earningsTypes.TOP_66 ||
+            earnType === earningsTypes.STREAK_BONUS
+        ) {
+            dayData['bonuses'] = (dayData['bonuses'] || 0) + curEarn.amount;
         }
         const total = Object.keys(dayData).filter(k => k !== 'total').reduce((sum, key) => sum + dayData[key], 0);
         dayData['total'] = total;
-        data[curEarn.date] = dayData;
+        data[ymdDate] = dayData;
     }
     const templateData = Object.entries(data).map(([k, v]) => {
         const dateParts = k.split('-');
-        v['day'] = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`; // conver YYYY-MM-DD to MM/DD/YYYY
+        v['day'] = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`; // convert YYYY-MM-DD to MM/DD/YYYY
         return v
     });
 
@@ -37,36 +49,29 @@ function expectPayboardMatches(payboard, earnings) {
 
     const expectedRows = earningsToRows(earnings);
 
-    const expectedDollars = (earningType, row) => {
-        switch (earningType) {
-            case earningsTypes.BREATH1: return row['session1Earned'] || 0;
-            case earningsTypes.BREATH2: return row['session2Earned'] || 0;
-            case earningsTypes.STREAK_BONUS1:
-            case earningsTypes.STREAK_BONUS2: return row['streakBonus'] || 0;
-            case 'total': return row['total'] || 0;
-        }
-    }
-
     const rows = payboard.rootDiv.querySelectorAll("tbody tr");
     expect(rows.length).toBe(expectedRows.length + 1);
+
+    const expDollarStr = (item) => {
+        return item ? `$${item}` : '$0';
+    }
 
     let overallTotal = 0;
     for (let i=0; i<rows.length - 1; i++) {
         const curRow = rows[i];
         const dayCell = curRow.children[0];
-        const sess1Cell = curRow.children[1];
-        const sess2Cell = curRow.children[2];
-        const streakCell = curRow.children[3];
+        const visitsCell = curRow.children[1];
+        const sessionsCell = curRow.children[2];
+        const bonusesCell = curRow.children[3];
         const totalCell = curRow.children[4];
         
         const expRow = expectedRows[i];
         expect(dayCell.innerHTML).toBe(expRow['day']);
-        expect(sess1Cell.innerHTML).toBe(`$${expectedDollars(earningsTypes.BREATH1, expRow)}`);
-        expect(sess2Cell.innerHTML).toBe(`$${expectedDollars(earningsTypes.BREATH2, expRow)}`);
-        const expStreakDollars = expectedDollars(earningsTypes.STREAK_BONUS1, expRow) || expectedDollars(earningsTypes.STREAK_BONUS2, expRow) || 0;
-        expect(streakCell.innerHTML).toBe(`$${expStreakDollars}`);
-        expect(totalCell.innerHTML).toBe(`$${expRow['total']}`);
-        overallTotal += expectedDollars('total', expRow);
+        expect(visitsCell.innerHTML).toBe(expDollarStr(expRow['visits']));
+        expect(sessionsCell.innerHTML).toBe(expDollarStr(expRow['sessions']));
+        expect(bonusesCell.innerHTML).toBe(expDollarStr(expRow['bonuses']));
+        expect(totalCell.innerHTML).toBe(expDollarStr(expRow['total']));
+        overallTotal += expRow['total'];
     }
 
     const totalRow = rows[rows.length - 1];
@@ -117,27 +122,27 @@ describe("Payboard", () => {
 
     it("should display breath earnings from multiple days correctly", async () => {
         const earnings = [
-            {type: earningsTypes.BREATH1, date: '2023-01-01', amount: 7},
-            {type: earningsTypes.BREATH2, date: '2023-01-01', amount: 7},
-            {type: earningsTypes.BREATH1, date: '2023-01-02', amount: 7}
+            {type: earningsTypes.BREATH1, date: '2023-01-01', amount: earningsAmounts[earningsTypes.BREATH1]},
+            {type: earningsTypes.PERFORMANCE_BREATH2, date: '2023-01-01', amount: earningsAmounts[earningsTypes.PERFORMANCE_BREATH2]},
+            {type: earningsTypes.BREATH1, date: '2023-01-02', amount: earningsAmounts[earningsTypes.BREATH1]}
         ];
         await testPayboard(earnings);
     });
 
-    it("should display streak bonus earnings when they exist", async () => {
+    it("should display performance bonus earnings when they exist", async () => {
         const earnings = [
-            {type: earningsTypes.BREATH1, date: '2023-01-01', amount: 7},
-            {type: earningsTypes.BREATH2, date: '2023-01-01', amount: 7},
-            {type: earningsTypes.STREAK_BONUS1, date: '2023-01-01', amount: 3}
+            {type: earningsTypes.BREATH1, date: '2023-01-01', amount: earningsAmounts[earningsTypes.BREATH1]},
+            {type: earningsTypes.PERFORMANCE_BREATH2, date: '2023-01-01', amount: earningsAmounts[earningsTypes.PERFORMANCE_BREATH2]},
+            {type: earningsTypes.TOP_66, date: '2023-01-01', amount: earningsAmounts[earningsTypes.TOP_66]}
         ];
         await testPayboard(earnings);
     });
 
-    it("should display streak bonus 2 earnings when they exist ", async () => {
+    it("should display completion streak bonus earnings when they exist ", async () => {
         const earnings = [
-            {type: earningsTypes.BREATH1, date: '2023-01-01', amount: 7},
-            {type: earningsTypes.BREATH2, date: '2023-01-01', amount: 7},
-            {type: earningsTypes.STREAK_BONUS2, date: '2023-01-01', amount: 5}
+            {type: earningsTypes.BREATH1, date: '2023-01-01', amount: earningsAmounts[earningsTypes.BREATH1]},
+            {type: earningsTypes.COMPLETION_BREATH2, date: '2023-01-01', amount: earningsAmounts[earningsTypes.COMPLETION_BREATH2]},
+            {type: earningsTypes.STREAK_BONUS, date: '2023-01-01', amount: earningsAmounts[earningsTypes.STREAK_BONUS]}
         ];
         await testPayboard(earnings);
     });
