@@ -33,14 +33,6 @@ plugins:
   - serverless-better-credentials
 
 functions:
-  create-rc-participant:
-    handler: redcap/redcap.createParticipant
-    events:
-      - httpApi:
-          method: POST
-          path: /rc
-    environment:
-      TOKEN: ${ssm:/${self:service}/${self:provider.stage}/info/redcap/token}
   handle-rc-event:
     handler: redcap/redcap.handleEvent
     events:
