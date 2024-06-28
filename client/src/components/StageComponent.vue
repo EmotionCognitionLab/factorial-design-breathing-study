@@ -248,7 +248,7 @@ async function showEndOfSessionText() {
     await new Promise(resolve => setTimeout(() => resolve(), 5000))
     // now fetch our earnings
     const earnings = await apiClient.getEarningsForSelf();
-    const newEarnings = earnings.filter(earning => !startEarnings.some(oldEarning => `${oldEarning.startDateTime}|${oldEarning.type}` === `${earning.startDateTime}|${earning.type}`))
+    const newEarnings = earnings.filter(earning => !startEarnings.some(oldEarning => `${oldEarning.date}|${oldEarning.type}` === `${earning.date}|${earning.type}`))
     if (newEarnings.length == 0) {
         showSubsequentSessionPostUploadText.value = true
         return
@@ -261,18 +261,14 @@ async function showEndOfSessionText() {
         bonusEarnings = newEarnings.filter(e => e.type === earningsTypes.TOP_25 || e.type === earningsTypes.TOP_66)
     }
     
-    if (bonusEarnings.length > 1) {
-        console.error(`Expected no more than one bonus earning since ${startEarnings}, but found ${bonusEarnings.length}.`)
-    } else if (bonusEarnings.length == 1) {
-        const e = bonusEarnings[0];
-        if (e.type === earningsTypes.COMPLETION_BREATH2) {
-            rewardText.value = `Congratulations! You received a $${e.amount / 2} bonus for completing all of today's practice sessions!`
-        } else if (e.type === earningsTypes.STREAK_BONUS) {
-            rewardText.value = `Congratulations! You received a $${e.amount} bonus for doing at least one session per day for three days in a row!`
-        } else if (e.type === earningsTypes.TOP_25 || e.type === earningsTypes.TOP_66) {
-            const adjective = e.type === earningsTypes.TOP_25 ? 'extraordinary' : 'outstanding'
-            rewardText.value = `Congratulations! You received a $${e.amount} bonus for your ${adjective} coherence scores during your practice session!`
-        }
+    const e = bonusEarnings[bonusEarnings.length - 1]; // might have more than one if previous uploads failed; use the last one (which is hopefully the most recent)
+    if (e.type === earningsTypes.COMPLETION_BREATH2) {
+        rewardText.value = `Congratulations! You received a $${e.amount / 2} bonus for completing all of today's practice sessions!`
+    } else if (e.type === earningsTypes.STREAK_BONUS) {
+        rewardText.value = `Congratulations! You received a $${e.amount} bonus for doing at least one session per day for three days in a row!`
+    } else if (e.type === earningsTypes.TOP_25 || e.type === earningsTypes.TOP_66) {
+        const adjective = e.type === earningsTypes.TOP_25 ? 'extraordinary' : 'outstanding'
+        rewardText.value = `Congratulations! You received a $${e.amount} bonus for your ${adjective} coherence scores during your practice session!`
     }
     showSubsequentSessionPostUploadText.value = true
 }
