@@ -188,6 +188,20 @@ functions:
       patterns:
         - 'register/*.js'
 
+  rcid-exists:
+    handler: register/register.rcidExists
+    events:
+      - httpApi:
+          path: /register/check-rcid/{rcid}
+          method: GET
+    environment:
+      DYNAMO_ENDPOINT: "https://dynamodb.${self:provider.region}.amazonaws.com"
+      USERS_TABLE: ${ssm:/${self:service}/${self:provider.stage}/info/dynamo/table/users}
+    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/unregistered}
+    package:
+      patterns:
+        - 'register/*.js'
+
 layers:
   BetterSqlite3:
     path: 'better-sqlite3-layer/layer'

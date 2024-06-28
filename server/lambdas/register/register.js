@@ -1,6 +1,27 @@
-import { cognitoClient } from "../common/aws-clients.js";
+import { ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { cognitoClient, dynamoDocClient as docClient } from "../common/aws-clients.js";
 import awsSettings from "../../../common/aws-settings.json";
 
+const usersTable = process.env.USERS_TABLE;
+
+exports.rcidExists = async (event) => {
+    const rcid = event.pathParameters.rcid;
+    if (!rcid || rcid === '' || Number.isNaN(Number.parseInt(rcid))) {
+        return {
+            statusCode: 400,
+            body: {"error": "Invalid rcid parameter"}
+        }
+    }
+
+    const userRecs = await docClient.send(new ScanCommand({
+        TableName: usersTable,
+        FilterExpression: 'rcid = :rcid',
+        ExpressionAttributeValues: { ':rcid': rcid }
+    }));
+
+    const idExists = userRecs.Items.length > 0;
+    return JSON.stringify({"idExists": idExists});
+}
 
 exports.signUp = async (event) => {
     try {

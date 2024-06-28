@@ -125,6 +125,11 @@ export default class ApiClient {
         return await this.doFetch(url, "post", "An error occurred doing the HRV analysis", ibiData)
     }
 
+    async rcidExists(rcid) {
+        const url = `${awsSettings.RegistrationApiUrl}/check-rcid/${rcid}`;
+        return await this.doFetch(url, "get", "An error occurred checking to see if the REDCap ID exists.");
+    }
+
     async doFetch(url, method, errPreamble, body = null) {
         const init = {
             method: method,
