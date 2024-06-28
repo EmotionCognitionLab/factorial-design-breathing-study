@@ -481,6 +481,55 @@ resource "aws_ssm_parameter" "lambda-role" {
   value = "${aws_iam_role.lambda.arn}"
 }
 
+# Policy to handle participant info record updates
+# from REDCAP
+resource "aws_iam_role" "lambda-redcap" {
+  name = "${var.project}-${var.env}-lambda-redcap"
+  path = "/role/lambda/redcap/"
+  description = "Role for lambda process that handles participant updates from redcap"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action =  [
+          "sts:AssumeRole"
+        ]
+      }
+    ]
+  })
+
+  inline_policy {
+    name = "${var.project}-${var.env}-usr-scan-update"
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Effect = "Allow"
+          "Action": [
+            "dynamodb:UpdateItem",
+            "dynamodb:Scan"
+          ],
+          "Resource": [
+            "arn:aws:dynamodb:${var.region}:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.users-table.name}"
+          ]
+        }
+      ]
+    })
+  }
+}
+
+# save above IAM role to SSM so serverless can reference it
+resource "aws_ssm_parameter" "lambda-redcap-role" {
+  name = "/${var.project}/${var.env}/role/lambda/redcap"
+  description = "ARN for lambda role"
+  type = "SecureString"
+  value = "${aws_iam_role.lambda-redcap.arn}"
+}
+
 # Policy for unregistered users for registration
 resource "aws_iam_role" "lambda-unregistered" {
   name = "${var.project}-${var.env}-lambda-unregistered"
