@@ -39,6 +39,11 @@ functions:
       - httpApi:
           method: POST
           path: /rc/event
+    environment: 
+      USERS_TABLE: ${ssm:/${self:service}/${self:provider.stage}/info/dynamo/table/users}
+      DYNAMO_ENDPOINT: "https://dynamodb.${self:provider.region}.amazonaws.com"
+      RC_IN_TOKEN: ${ssm:/${self:service}/${self:provider.stage}/info/redcap/inbound/token}
+    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/redcap}
   find-hrv-peaks:
     architecture: arm64
     runtime: provided.al2023
@@ -178,19 +183,6 @@ functions:
           method: POST
     environment:
       DYNAMO_ENDPOINT: "https://dynamodb.${self:provider.region}.amazonaws.com"
-    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/unregistered}
-    package:
-      patterns:
-        - 'register/*.js'
-
-  fetch-rc-user:
-    handler: register/register.fetchRedcap
-    events:
-      - httpApi:
-          path: /register/fetch-rc/{rcid}
-          method: GET
-    environment:
-      TOKEN: ${ssm:/${self:service}/${self:provider.stage}/info/redcap/token}
     role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/unregistered}
     package:
       patterns:
