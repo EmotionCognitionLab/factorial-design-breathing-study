@@ -83,10 +83,10 @@ resource "aws_cloudwatch_metric_alarm" "console-error-alarm" {
   treat_missing_data = "notBreaching"
 }
 
-resource "aws_ssm_parameter" "redcap-api-token" {
-  name = "/${var.project}/${var.env}/info/redcap/token"
-  description = "Token for REDCap API access"
+resource "aws_ssm_parameter" "redcap-inbound-token" {
+  name = "/${var.project}/${var.env}/info/redcap/inbound/token"
+  description = "Token REDCap sends us"
   type = "SecureString"
-  value = var.redcap-api-token
+  value = var.redcap-inbound-token
 }
 

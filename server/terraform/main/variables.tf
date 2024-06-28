@@ -27,8 +27,8 @@ variable "error-notification-emails" {
     sensitive = true
 }
 
-variable "redcap-api-token" {
-    description = "API token for accessing REDCap"
+variable "redcap-inbound-token" {
+    description = "Token sent by REDCap to us"
     sensitive = true
 }
 
