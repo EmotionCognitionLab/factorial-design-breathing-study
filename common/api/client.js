@@ -1,3 +1,4 @@
+import { getAuth } from '../auth/auth';
 import awsSettings from '../aws-settings.json';
 
 export default class ApiClient {
@@ -130,7 +131,7 @@ export default class ApiClient {
         return await this.doFetch(url, "get", "An error occurred checking to see if the REDCap ID exists.");
     }
 
-    async doFetch(url, method, errPreamble, body = null) {
+    async doFetch(url, method, errPreamble, body = null, isRetry = false) {
         const init = {
             method: method,
             mode: "cors",
@@ -146,8 +147,26 @@ export default class ApiClient {
             const response = await fetch(url, init);
 
             if (!response.ok) {
-                const respText = await response.text();
-                throw new Error(`${errPreamble}: ${respText} (status code: ${response.status})`);
+                if (response.status == 401 && !isRetry) {
+                    // try refreshing the session and repeating the call
+                    const p = new Promise((res, rej) => {
+                        const cognitoAuth = getAuth();
+                        cognitoAuth.userhandler = {
+                            onSuccess: session => res(session),
+                            onFailure: err => {
+                                console.error(err);
+                                rej(err);
+                            }
+                        }
+                        cognitoAuth.getSession();
+                    });
+                    const session = await p;
+                    this.idToken = session.getIdToken().getJwtToken();
+                    return await this.doFetch(url, method, errPreamble, body, true);
+                } else {
+                    const respText = await response.text();
+                    throw new Error(`${errPreamble}: ${respText} (status code: ${response.status})`);
+                }
             }
             return await response.json();
         } catch (err) {
