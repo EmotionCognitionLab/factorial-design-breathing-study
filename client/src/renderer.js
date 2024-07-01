@@ -72,11 +72,13 @@ const router = createRouter({
 
 let isDbInitialized = false
 
-async function practiceOrSetup() {
+async function practiceOrSetup(to) {
     if (!isDbInitialized) {
         console.error(`Database is not initialized; unable to tell if participant requires setup.`)
         return false // TODO should we just send them through signup again?
     }
+    if (to.params.stageNum == 3) return true;
+
     if (await window.mainAPI.getKeyValue('setupComplete') == 'true') {
         return { path: '/stage/2' }
     }
