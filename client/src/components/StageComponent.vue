@@ -296,9 +296,11 @@ function quit() {
     box-sizing: border-box;
     text-align: left !important;
 }
+.left-col {
+    padding-left: 60px;
+}
 .left-col li {
     padding-top: 15px;
-    padding-left: 60px;
 }
 .right-col {
     max-height: 72vh;
