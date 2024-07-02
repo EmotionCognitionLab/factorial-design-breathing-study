@@ -159,8 +159,25 @@ describe("quality rewards", () => {
                 { startDateTime: today.subtract(2, 'days').add(3, 'hours').unix(), weightedAvgCoherence: 2.7 },
             ];
             const res = trainingQualityRewards(sqliteMock, 9, null, allSessions, []);
+            expect(res.length).toBe(1);
             expect(res).toEqual(expect.arrayContaining([
                 {day: dayjs.unix(allSessions[3].startDateTime).tz('America/Los_Angeles').format(), earnings: earningsTypes.TOP_25}
+            ]));
+        });
+
+        it("should work when a series of descending coherence values is followed by a higher one", () => {
+            const today = dayjs().tz('America/Los_Angeles');
+            const allSessions = [
+                { startDateTime: today.subtract(3, 'days').unix(), weightedAvgCoherence: 2.7 },
+                { startDateTime: today.subtract(3, 'days').add(4, 'hours').unix(), weightedAvgCoherence: 1.8 },
+                { startDateTime: today.subtract(2, 'days').unix(), weightedAvgCoherence: 1.3 },
+                { startDateTime: today.subtract(2, 'days').add(3, 'hours').unix(), weightedAvgCoherence: 2.2 },
+                { startDateTime: today.subtract(2, 'days').add(3, 'hours').unix(), weightedAvgCoherence: 1.34 },
+            ];
+            const res = trainingQualityRewards(sqliteMock, 9, null, allSessions, []);
+            expect(res.length).toBe(1);
+            expect(res).toEqual(expect.arrayContaining([
+                {day: dayjs.unix(allSessions[3].startDateTime).tz('America/Los_Angeles').format(), earnings: earningsTypes.TOP_66}
             ]));
         });
 

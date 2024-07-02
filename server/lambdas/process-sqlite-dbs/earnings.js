@@ -159,7 +159,8 @@ const performanceQualityRewards = (eligibleSessions, priorCoherenceValues) => {
         }
         
         // add current weightedAvgCoherence to our priors so that it's included in next comparison
-        const insertIdx = comparisonCoherenceValues.findIndex(cv => cv < s.weightedAvgCoherence);
+        let insertIdx = comparisonCoherenceValues.findIndex(cv => cv < s.weightedAvgCoherence);
+        if (insertIdx == -1) insertIdx = comparisonCoherenceValues.length;
         comparisonCoherenceValues.splice(insertIdx, 0, s.weightedAvgCoherence);
     }
 
