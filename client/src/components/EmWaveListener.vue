@@ -5,7 +5,7 @@
         </div>
         <div v-if="sensorError">
             No or poor signal detected. Please make sure the device is connected properly and your earlobe is warm.
-            (If it is cold, try rubbing it between your thumb and forefinger to warm it up and get blood flowing to it.)
+            (If your earlobe is cold, try rubbing it between your thumb and forefinger to warm it up and get blood flowing to it.)
         </div>
         <div v-if="sessionEnded">
             The session has ended because it has been a long time since the device detected a pulse signal.
