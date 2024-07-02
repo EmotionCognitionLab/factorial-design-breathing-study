@@ -12,13 +12,13 @@
             <form novalidate>
                 <input type="hidden" name="rcid" id="rcid" value=""/>
                 <label for="name">Name:</label>
-                <input type="text" name="name" id="name" value="" disabled/> <br/>
+                <input type="text" name="name" id="name" value=""/> <br/>
                 <label for="email">Email:</label>
-                <input type="email" name="email" id="email" value="" disabled /> <br/>
+                <input type="email" name="email" id="email" value="" /> <br/>
                         
                 <p>
                     <label for="phone">Phone (with area code):
-                        <input type="text" name="phone" id="phone" minlength="10" pattern="[\-0-9 \)\(]+" required placeholder="A validation code will be sent to this number" disabled value="" />
+                        <input type="text" name="phone" id="phone" minlength="10" pattern="[\-0-9 \)\(]+" required placeholder="A validation code will be sent to this number" value="" />
                         <span class="error hidden"></span>
                     </label>
                 </p>
@@ -54,6 +54,15 @@
                 <p></p>
                 <span class="small">Didn't receive a code? <a href="" id="resendPhoneCodeNormal">Resend it</a></span> 
             </div>
+        </div>
+        <div id="researcher-confirmation" class="hidden">
+            <h3>Please ask the researcher to confirm this registration.</h3>
+            Name: <span id="name-confirm"></span><br/>
+            Email: <span id="email-confirm"></span><br/>
+            Phone: <span id="phone-confirm"></span><br/>
+            <input id="researcherVerification" type="password" />
+            <button id="editRegInfo">Edit Registration Information</button>
+            <button id="submitResearcherVerification" disabled>Submit</button>
         </div>
     </body>
 </html>

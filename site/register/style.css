@@ -51,6 +51,12 @@ p * {
     max-width: 600px;
 }
 
+#researcher-confirmation {
+    top: 30%;
+    position: absolute;
+    margin: 0
+}
+
 #submit-button {
     color: black;
     font-size: 24px;

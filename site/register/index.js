@@ -22,6 +22,18 @@ async function init() {
         })
     };
     const client = new ApiClient(fakeSession);
+    try {
+        const rcidCheck = await client.rcidExists(rcid);
+        if (rcidCheck.idExists) {
+            showError(`The REDCap id ${rcid} is already in use. Unable to continue.`);
+            return;
+        }
+    } catch (err) {
+        console.error('Error checking if rcid exists', err);
+        showError(`An error has occurred. Please ask the researcher for assistance. (Error: ${err.message})`);
+        return;
+    }
+    
 
     document.getElementById("passwordConfirm").addEventListener('paste', async (event) => {
         event.preventDefault();
@@ -30,7 +42,7 @@ async function init() {
 
     document.getElementById("submit-button").addEventListener('click', async (event) => {
         event.preventDefault();
-        await registerUser(client);
+        validateAndConfirm();
     });
 
     document.getElementById("submitPhoneVerification").addEventListener('click', async (event) => {
@@ -43,20 +55,35 @@ async function init() {
         const userId = window.sessionStorage.getItem("userId");
         await resendSignUpConfirmationCode(userId);
     });
-    try {
-        const rcUserInfo = await client.fetchRedcapUserInfo(rcid);
-        showRegForm(rcUserInfo.email, rcUserInfo.phone, rcUserInfo.first_name, rcUserInfo.last_name, rcid);
-    } catch (err) {
-        showError(err.message);
-    }
+
+    document.getElementById("editRegInfo").addEventListener('click', async (event) => {
+        event.preventDefault();
+        document.getElementById("researcher-confirmation").classList.add("hidden");
+        document.getElementById("registration-form").classList.remove("hidden");
+    });
+
+    document.getElementById("researcherVerification").addEventListener('input', async (event) => {
+        if (event.target.value === 'info matches redcap') {
+            document.getElementById('submitResearcherVerification').disabled = false;
+        } else {
+            document.getElementById('submitResearcherVerification').disabled = true;
+        }
+    });
+
+    document.getElementById("submitResearcherVerification").addEventListener('click', async (event) => {
+        event.preventDefault();
+        await registerUser(client);
+    });
+    
+    showRegForm(rcid);
+   
 }
 
 function registrationFormIsValid() {
     let isValid = true;
 
-    const email = document.getElementById("email");
-
-    const phone = document.getElementById("phone");
+    const regInfo = getRegistrationInfo();
+    const phone = regInfo.elements.phone;
     const phoneErr = document.querySelector("#phone + span.error");
     if (phone.validity.valid) {
         phoneErr.textContent = "";
@@ -75,8 +102,8 @@ function registrationFormIsValid() {
         isValid = false;
     }
 
-    const password = document.getElementById("password");
-    const passwordConfirm = document.getElementById("passwordConfirm");
+    const password = regInfo.elements.password;
+    const passwordConfirm = regInfo.elements.passwordConfirm;
     const passErr = document.querySelector("#passwordConfirm + span.error");
     if (password.validity.valid) {
         if (password.value === passwordConfirm.value) {
@@ -97,7 +124,7 @@ function registrationFormIsValid() {
         isValid = false;
     }
 
-    const msgConsent = document.getElementById("msgConsent");
+    const msgConsent = regInfo.elements.msgConsent;
     const msgConsentErr = document.querySelector("#msgConsent ~ span.error");
     if (msgConsent.validity.valid) {
         msgConsentErr.textContent = "";
@@ -111,12 +138,22 @@ function registrationFormIsValid() {
     return isValid;
 }
 
-async function registerUser(client) {
+function validateAndConfirm() {
     if (!registrationFormIsValid()) {
         return;
     }
+    const regInfo = getRegistrationInfo();
+    document.getElementById("registration-form").classList.add("hidden");
+    document.getElementById("name-confirm").innerHTML = regInfo.values.name;
+    document.getElementById("email-confirm").innerHTML = regInfo.values.email;
+    document.getElementById("phone-confirm").innerHTML = regInfo.values.phone;
+    document.getElementById("researcher-confirmation").classList.remove("hidden");
+}
 
-    let phone = document.getElementById("phone").value;
+async function registerUser(client) {
+    const regInfo = getRegistrationInfo()
+
+    let phone = regInfo.values.phone;
     phone = phone.replaceAll(/[^0-9]+/g, "");
     // phone format is +12135551212
     if (!phone.startsWith("1")) {
@@ -124,15 +161,11 @@ async function registerUser(client) {
     }
     phone = "+" + phone;
 
-    const name = document.getElementById("name").value;
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    const rcid = document.getElementById("rcid").value;
     try {
-        const resp = await client.registerUser(name, email, phone, password, rcid);
+        const resp = await client.registerUser(regInfo.values.name, regInfo.values.email, phone, regInfo.values.password, regInfo.values.rcid);
         const userId = resp.sub;
         window.sessionStorage.setItem("userId", userId);
-        document.getElementById("registration-form").classList.add("hidden");
+        document.getElementById("researcher-confirmation").classList.add("hidden");
         document.getElementById("phoneVerification").classList.remove("hidden");
     } catch (err) {
         showError(err.message);
@@ -156,12 +189,32 @@ async function verifyPhone() {
     }
 }
 
-function showRegForm(email, phone, firstName, lastName, rcid) {
+function getRegistrationInfo() {
+    const name = document.getElementById("name");
+    const email = document.getElementById("email");
+    const phone = document.getElementById("phone");
+    const password = document.getElementById("password");
+    const msgConsent = document.getElementById("msgConsent");
+    const rcid = document.getElementById("rcid");
+    const passwordConfirm = document.getElementById("passwordConfirm");
+    const elements = {
+        name: name, email: email, phone: phone, password: password, 
+        passwordConfirm: passwordConfirm, msgConsent: msgConsent, rcid: rcid
+    };
+    const values = {
+        name: name.value, email: email.value, phone: phone.value, password: password.value, 
+        passwordConfirm: passwordConfirm.value, msgConsent: msgConsent.value, rcid: rcid.value
+    };
+
+    return {
+        elements: elements,
+        values: values
+    };
+}
+
+function showRegForm(rcid) {
     document.getElementById("loading").classList.add("hidden");
     document.getElementById("registration-form").classList.remove("hidden");
-    document.getElementById("name").value = `${firstName} ${lastName}`;
-    document.getElementById("email").value = email;
-    document.getElementById("phone").value = phone;
     document.getElementById("rcid").value = rcid;
 }
  
