@@ -132,7 +132,7 @@ export class Dashboard {
                 } else if (u.progress.status === statusTypes.COMPLETE) {
                     statusCell.classList.add("dot", "blue");
                 }
-                return;
+                continue;
             }
             
 
