@@ -298,6 +298,7 @@ function quit() {
 }
 .left-col li {
     padding-top: 15px;
+    padding-left: 60px;
 }
 .right-col {
     max-height: 72vh;
