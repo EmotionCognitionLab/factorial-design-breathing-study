@@ -58,6 +58,7 @@ functions:
           path: /rhrv
           method: post
     timeout: 30
+    provisionedConcurrency: 1
   process-sqlite-dbs:
     handler: process-sqlite-dbs/process-sqlite-dbs.handler
     events:
