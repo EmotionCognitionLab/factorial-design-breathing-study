@@ -150,6 +150,20 @@ describe("quality rewards", () => {
             expect(res).toEqual(expect.arrayContaining([{day: sessDate.format(), earnings: earningsTypes.TOP_25}]));
         });
 
+        it("should work when there are 0 prior coherence values and multiple sessions are uploaded", () => {
+            const today = dayjs().tz('America/Los_Angeles');
+            const allSessions = [
+                { startDateTime: today.subtract(3, 'days').unix(), weightedAvgCoherence: 2.7 },
+                { startDateTime: today.subtract(3, 'days').add(4, 'hours').unix(), weightedAvgCoherence: 2.2 },
+                { startDateTime: today.subtract(2, 'days').unix(), weightedAvgCoherence: 1.8 },
+                { startDateTime: today.subtract(2, 'days').add(3, 'hours').unix(), weightedAvgCoherence: 2.7 },
+            ];
+            const res = trainingQualityRewards(sqliteMock, 9, null, allSessions, []);
+            expect(res).toEqual(expect.arrayContaining([
+                {day: dayjs.unix(allSessions[3].startDateTime).tz('America/Los_Angeles').format(), earnings: earningsTypes.TOP_25}
+            ]));
+        });
+
         it("should add weighted avg coherence values to the set of prior coherence values when processing multiple sessions", () => {
             const priorCoherenceValues = [1,2,3,4,5,6]; // >=3 == 66%, >=5 == 25%   [1,2,3,4,5,5,5,5,6] >=4 == 66%, >=5 == 25%
             const sessDate = dayjs().tz('America/Los_Angeles').subtract(4, 'days');

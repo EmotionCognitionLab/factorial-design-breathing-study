@@ -145,18 +145,19 @@ const completionQualityRewards = (sqliteDb, latestQualityEarnings) => {
 const performanceQualityRewards = (eligibleSessions, priorCoherenceValues) => {
     const earnings = [];
 
-    if (priorCoherenceValues.length == 0) return [];
-
     const comparisonCoherenceValues = priorCoherenceValues.toSorted((a,b) => b - a); // sort descending
     for (const s of eligibleSessions) {
-        const earnDate = dayjs.unix(s.startDateTime).tz('America/Los_Angeles');
-        const sixSixIdx = Math.ceil(.66 * comparisonCoherenceValues.length) - 1;
-        const twoFiveIdx = Math.ceil(.25 * comparisonCoherenceValues.length) - 1;
-        if (twoFiveIdx < 0 || s.weightedAvgCoherence >= comparisonCoherenceValues[twoFiveIdx]) {
-            earnings.push({day: earnDate.format(), earnings: earningsTypes.TOP_25})
-        } else if (sixSixIdx < 0 || s.weightedAvgCoherence >= comparisonCoherenceValues[sixSixIdx]) {
-            earnings.push({day: earnDate.format(), earnings: earningsTypes.TOP_66});
+        if (comparisonCoherenceValues.length > 0) {
+            const earnDate = dayjs.unix(s.startDateTime).tz('America/Los_Angeles');
+            const sixSixIdx = Math.ceil(.66 * comparisonCoherenceValues.length) - 1;
+            const twoFiveIdx = Math.ceil(.25 * comparisonCoherenceValues.length) - 1;
+            if (twoFiveIdx < 0 || s.weightedAvgCoherence >= comparisonCoherenceValues[twoFiveIdx]) {
+                earnings.push({day: earnDate.format(), earnings: earningsTypes.TOP_25})
+            } else if (sixSixIdx < 0 || s.weightedAvgCoherence >= comparisonCoherenceValues[sixSixIdx]) {
+                earnings.push({day: earnDate.format(), earnings: earningsTypes.TOP_66});
+            }
         }
+        
         // add current weightedAvgCoherence to our priors so that it's included in next comparison
         const insertIdx = comparisonCoherenceValues.findIndex(cv => cv < s.weightedAvgCoherence);
         comparisonCoherenceValues.splice(insertIdx, 0, s.weightedAvgCoherence);
