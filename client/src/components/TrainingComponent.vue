@@ -75,7 +75,7 @@ Chart.register(ChartStreaming)
 const data = {
     datasets: [
         {
-            label: 'Heart Rate (bpm)',
+            label: 'Heart Rate',
             backgroundColor: 'rgb(255, 99, 132)',
             borderColor: 'rgb(255, 99, 132)',
             data: []
@@ -121,7 +121,7 @@ function buildChartConfig() {
                 y: {
                     title: {
                         display: true,
-                        text: 'BPM',
+                        text: 'Beats per minute',
                     },
                     suggestedMin: 60,
                     suggestedMax: 80
