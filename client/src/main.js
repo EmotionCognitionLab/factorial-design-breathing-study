@@ -19,7 +19,7 @@ import('electron-squirrel-startup').then(ess => {
 });
 
 app.setAboutPanelOptions({
-  applicationName: "Factorial Design Breathing Study",
+  applicationName: "Breathing Study",
   applicationVersion: version.v,
   iconPath: assetsPath() + "logo.png"
 });
