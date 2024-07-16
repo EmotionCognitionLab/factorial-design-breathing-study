@@ -8,7 +8,7 @@ import { ipcMain } from 'electron';
 const Logger = require('logger');
 import emwave from './emwave';
 import { emWaveDbPath, deleteShortSessions as deleteShortEmwaveSessions, extractSessionData, getDataForSessions } from './emwave-data';
-import { breathDbPath, closeBreathDb, getKeyValue, setKeyValue, saveEmWaveSessionData, getEmWaveSessionsForStage, getNextEmoPic, getEmWaveSessionMinutesForDayAndStage, deleteAllData } from './breath-data';
+import { breathDbPath, closeBreathDb, getKeyValue, setKeyValue, saveEmWaveSessionData, getEmWaveSessionsForStage, getNextEmoPic, getEmWaveSessionMinutesForDayAndStage } from './breath-data';
 import version from "../version.json";
 import { SessionStore } from './session-store'
 import s3utils from './s3utils'
@@ -58,7 +58,6 @@ const createWindow = async () => {
 
 const EARNINGS_MENU_ID = 'earnings'
 const TRAINING_MENU_ID = 'training'
-const SETTINGS_MENU_ID = 'settings'
 const LAB_VISIT_MENU_ID = 'lab-visit'
 
 function buildMenuTemplate(window) {
@@ -71,7 +70,6 @@ function buildMenuTemplate(window) {
       submenu: [
         { role: 'about' },
         { type: 'separator' },
-        { label: 'Settings', id: SETTINGS_MENU_ID, click: () => window.webContents.send('go-to', '/condition')},
         { role: 'services' },
         { type: 'separator' },
         { role: 'hide' },
@@ -105,7 +103,7 @@ function buildMenuTemplate(window) {
               { role: 'stopSpeaking' }
             ]
           }
-        ] : [ { label: 'Preferences', id: SETTINGS_MENU_ID, click: () => window.webContents.send('go-to', '/condition')} ])
+        ] : [ ])
       ]
     },
     // { role: 'viewMenu' }
@@ -328,10 +326,6 @@ ipcMain.handle('set-stage', async(_event, stage) => {
 ipcMain.handle('quit', () => {
   app.quit();
 })
-
-ipcMain.handle('delete-local-data', () => {
-  deleteAllData();
-});
 
 
 // Quit when all windows are closed, except on macOS. There, it's common
