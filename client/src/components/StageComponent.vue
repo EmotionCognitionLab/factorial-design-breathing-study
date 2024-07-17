@@ -100,7 +100,7 @@
         </div>
 
         <div class="instruction" :class="{hidden: !reloadNeeded}">
-            It looks like the Factorial Design Breathing Study application has been left running overnight. Please quit and restart before resuming your practice.
+            It looks like the Breathing Study application has been left running overnight. Please quit and restart before resuming your practice.
             <br/>
             <button class="button" @click="quit">Quit</button>
         </div>

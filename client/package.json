@@ -1,8 +1,8 @@
 {
   "name": "fd-breath-study",
-  "productName": "Factorial Design Breathing Study",
-  "version": "1.0.6",
-  "description": "An application that guides participants through the Factorial Design Breathing Study",
+  "productName": "Breathing Study",
+  "version": "1.0.7",
+  "description": "An application that guides participants through the Breathing Study",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
