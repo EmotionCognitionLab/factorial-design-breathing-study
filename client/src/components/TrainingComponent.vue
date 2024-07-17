@@ -20,7 +20,7 @@
             <div id="timer"><TimerComponent :secondsDuration=secondsDuration :showButtons=false :countBy="'minutes'" ref="timer" /></div>
         </div>
         <div v-if="factors.playAudioPacer && !hasSetSound">
-            This part of the application will have sound. Make sure your volume is set so you can hear it. <br/>
+            This part of the application will have sound. Make sure your volume is set so you can hear it. If you find it helps, you may close your eyes during the sessions and use the sound to guide your breathing.<br/>
             <button @click="hasSetSound=true">OK</button>
         </div>
         <div v-else>
