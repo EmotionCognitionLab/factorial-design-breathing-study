@@ -274,6 +274,7 @@ describe("time rewards", () => {
         ]);
         const res = trainingTimeRewards(sqliteMock, 25, null);
         expect(allMock).toHaveBeenCalledTimes(1);
+        expect(res.length).toBe(5);
         expect(res).toEqual(expect.arrayContaining([
             {
                 day: formatDate('2024-03-09'), earnings: earningsTypes.BREATH1
