@@ -33,7 +33,7 @@ const minutesPerDay = (sqliteDb, startTime) => {
 // Given a number of minutes, converts it to a
 // number of 18 minute abstract sessions
 const minutesToSessions = (minutes) => {
-    return Math.round(minutes / maxSessionMinutes);
+    return Math.floor(minutes / maxSessionMinutes);
 }
 
 /**
@@ -73,7 +73,6 @@ export const trainingTimeRewards = (sqliteDb, condition, latestTimeEarnings) => 
         }
         
     }
-
     return newEarnings;
 }
 
