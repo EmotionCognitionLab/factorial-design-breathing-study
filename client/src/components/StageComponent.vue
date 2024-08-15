@@ -232,7 +232,7 @@ function saveEmWaveSessionData() {
             emoPicNum = null
         }
         resolve()
-    }, 500) );
+    }, 1000) );
 }
 
 async function showEndOfSessionText() {
