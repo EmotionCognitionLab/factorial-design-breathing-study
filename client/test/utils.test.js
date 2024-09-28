@@ -49,7 +49,7 @@ describe("calculatePersonalizedPaces", () => {
         expect (validPaces.length).toBe(1);
         const validPace = validPaces[0];
         const pace = calculatePersonalizedPace('slower',  testPeaks);
-        expect(pace).toBe(hzToBreathsPerMinute(validPace));
+        expect(pace).toBe(hzToBreathsPerMinute(validPace.slowerX));
     });
 
     it("should return the frequency that appears most often", () => {
