@@ -87,7 +87,7 @@ export function calculatePersonalizedPace(slowOrSlower, peakFreqs) {
     }
 
     if (validFreqs.length == 1) {
-        return hzToBreathsPerMinute(validFreqs[0].preakFreq);
+        return hzToBreathsPerMinute(validFreqs[0].x);
     }
 
     // check for a frequency that appears most often
