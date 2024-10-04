@@ -139,9 +139,9 @@ async function getActiveUserConditions() {
             ProjectionExpression: "#condition",
             FilterExpression: `attribute_exists(#condition) and
             attribute_not_exists(progress) or ( attribute_exists(progress) and 
-            (attribute_not_exists(progress.dropped) or progress.dropped = :null))`,
-            ExpressionAttributeNames: {'#condition': 'condition'},
-            ExpressionAttributeValues: {':null': null},
+            progress.#status <> :dropped)`,
+            ExpressionAttributeNames: {'#condition': 'condition', '#status': 'status'},
+            ExpressionAttributeValues: {':dropped':'dropped'},
             ConsistentRead: true
         }
         dynResults = await docClient.send(new ScanCommand(params));

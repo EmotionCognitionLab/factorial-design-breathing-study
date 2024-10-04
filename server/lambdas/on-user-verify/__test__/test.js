@@ -143,12 +143,19 @@ describe("assignment to condition", () => {
     });
 
     test("should ignore the conditions of dropped users when determining conditions with the lowest number of participants", async() => {
+        // add 64th user to force upcoming dropped user as only unused condition
+        const lastUserParams = {
+            TableName: process.env.USERS_TABLE,
+            Item: {userId: numUsers.toString(), condition: numUsers}
+        };
+        await docClient.send(new PutCommand(lastUserParams));
+
         const droppedUserId = '31';
         const params = {
             TableName: process.env.USERS_TABLE,
             Key: {'userId': droppedUserId},
             UpdateExpression: 'set progress = :progress',
-            ExpressionAttributeValues: {':progress': {dropped: '2023-01-07T19:42:28.092Z'}}
+            ExpressionAttributeValues: {':progress': {status: 'dropped'}}
         };
         await docClient.send(new UpdateCommand(params));
 
@@ -163,8 +170,8 @@ describe("assignment to condition", () => {
             }
         };
         const userRes = (await docClient.send(new GetCommand(getParams))).Item;
-        // it should choose between the condition of the dropped user and the one unassigned condition
-        expect(userRes.condition == Number.parseInt(droppedUserId) || userRes.condition == numUsers).toBe(true);
+        // it should choose the condition of the dropped user
+        expect(userRes.condition == Number.parseInt(droppedUserId)).toBe(true);
     });
 
     test("should handle the case where some conditions have two, some one and some zero participants", async() => {
