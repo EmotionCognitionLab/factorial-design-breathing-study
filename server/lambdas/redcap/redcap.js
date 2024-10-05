@@ -55,14 +55,14 @@ exports.handleEvent = async (event) => {
     }
 
     const user = userRecs.Items[0];
-    if (!user.progress?.status !== statusTypes.DROPPED) {
+    if (user.progress?.status !== statusTypes.DROPPED) {
         await db.updateUser(user.userId, {progress: {status: statusTypes.DROPPED}});
         console.log(`Set user ${user.userId} status to dropped.`);
     }
 
     return {
         statusCode: 200,
-        body: {"message": "success"}
+        body: "success"
     }
     
 }
