@@ -489,6 +489,8 @@ resource "aws_iam_role" "lambda-redcap" {
       ]
     })
   }
+
+  managed_policy_arns = [aws_iam_policy.cloudwatch-write.arn]
 }
 
 # save above IAM role to SSM so serverless can reference it
