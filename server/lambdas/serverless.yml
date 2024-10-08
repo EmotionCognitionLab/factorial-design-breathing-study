@@ -188,7 +188,7 @@ functions:
     events:
       - schedule:
           name: "${self:service}-${self:provider.stage}-user-condition-reports"
-          rate: cron(0 20 ? * TUE *)
+          rate: cron(15 20 ? * TUE *)
           enabled: ${self:custom.isProd.${self:provider.stage}}
     environment:
       DYNAMO_ENDPOINT: "https://dynamodb.${self:provider.region}.amazonaws.com"

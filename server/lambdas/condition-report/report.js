@@ -24,7 +24,7 @@ export async function handler (event) {
 }
 
 function conditionCounts(userConditions) {
-    const undroppedConds = userConditions.filter(u => u.status !== 'Dropped').map(u => u.condition);
+    const undroppedConds = userConditions.filter(u => u.status !== 'dropped').map(u => u.condition);
     const condCounts = Array(64).fill(0); // there are 64 possible conditions
     undroppedConds.forEach(cond => {
         condCounts[cond] += 1
