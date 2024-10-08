@@ -90,3 +90,10 @@ resource "aws_ssm_parameter" "redcap-inbound-token" {
   value = var.redcap-inbound-token
 }
 
+resource "aws_ssm_parameter" "report-recipients" {
+  name = "/${var.project}/${var.env}/info/report/recipients"
+  description = "Recipients of user condition report"
+  type = "SecureString"
+  value = var.report-recipients
+}
+

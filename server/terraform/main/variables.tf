@@ -35,3 +35,7 @@ variable "redcap-inbound-token" {
 variable "data-bucket" {
     description =  "S3 bucket for participant data"
 }
+
+variable "report-recipients" {
+    description = "Recipients of the user condition report"
+}
