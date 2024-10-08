@@ -51,11 +51,7 @@ async function getUserConditionsAndStatus() {
             TableName: usersTable,
             ExclusiveStartKey,
             ProjectionExpression: "userId, rcid, #condition, progress",
-            FilterExpression: `attribute_exists(#condition) and
-            attribute_not_exists(progress) or ( attribute_exists(progress) and 
-            progress.#status <> :dropped)`,
-            ExpressionAttributeNames: {'#condition': 'condition', '#status': 'status'},
-            ExpressionAttributeValues: {':dropped':'dropped'},
+            ExpressionAttributeNames: {'#condition': 'condition'},
             ConsistentRead: true
         }
         dynResults = await docClient.send(new ScanCommand(params));
