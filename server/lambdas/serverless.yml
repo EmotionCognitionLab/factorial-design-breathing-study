@@ -183,24 +183,6 @@ functions:
       patterns:
         - 'register/*.js'
 
-  reports:
-    handler: condition-report/report.handler
-    events:
-      - schedule:
-          name: "${self:service}-${self:provider.stage}-user-condition-reports"
-          rate: cron(0 21 ? * TUE *)
-          enabled: ${self:custom.isProd.${self:provider.stage}}
-    environment:
-      DYNAMO_ENDPOINT: "https://dynamodb.${self:provider.region}.amazonaws.com"
-      USERS_TABLE: ${ssm:/${self:service}/${self:provider.stage}/info/dynamo/table/users}
-      SES_ENDPOINT: "https://email.${self:provider.region}.amazonaws.com"
-      EMAIL_SENDER: "uscemotioncognitionlab@gmail.com"
-      EMAIL_RECIPIENTS: ${ssm:/${self:service}/${self:provider.stage}/info/report/recipients}
-    role: ${ssm:/${self:service}/${self:provider.stage}/role/lambda/dynamodb/sns/ses}
-    package:
-      patterns:
-        - 'condition-reports/*.js'
-
   rcid-exists:
     handler: register/register.rcidExists
     events:
